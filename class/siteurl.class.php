@@ -555,11 +555,38 @@ class SiteUrl extends CommonObject
 	 */
 	public function delete(User $user, $notrigger = 0)
 	{
+		global $langs;
+
+		// The plugins of the URL are deleted with it (one event for the whole deletion)
+		dol_include_once('/nssuiviprod/class/siteplugin.class.php');
+		$this->db->begin();
+		$deletedplugins = array();
+		$tmpplugin = new SitePlugin($this->db);
+		$plugins = $tmpplugin->fetchAll('ASC', 't.rowid', 0, 0, '(t.fk_siteurl:=:'.((int) $this->id).')');
+		SitePlugin::$noevent = true;
+		foreach ((is_array($plugins) ? $plugins : array()) as $plugin) {
+			if ($plugin->delete($user, $notrigger) < 0) {
+				SitePlugin::$noevent = false;
+				$this->error = $plugin->error;
+				$this->errors = array_merge($this->errors, $plugin->errors);
+				$this->db->rollback();
+				return -1;
+			}
+			$deletedplugins[] = $plugin->ref.((string) $plugin->version !== '' ? ' ('.$plugin->version.')' : '');
+		}
+		SitePlugin::$noevent = false;
+
 		$result = $this->deleteCommon($user, $notrigger);
 		if ($result > 0) {
-			global $langs;
+			$this->db->commit();
 			$langs->load("nssuiviprod@nssuiviprod");
-			nssuiviprodAddSiteEvent($this->db, $user, (int) $this->fk_site, $langs->transnoentitiesnoconv('NssuiviprodEvtUrlDeleted', $this->getDisplayLabel()), array($this->url));
+			$details = array($this->url);
+			if (count($deletedplugins)) {
+				$details[] = $langs->transnoentitiesnoconv('UrlPluginsDeleted', count($deletedplugins)).' : '.implode(', ', $deletedplugins);
+			}
+			nssuiviprodAddSiteEvent($this->db, $user, (int) $this->fk_site, $langs->transnoentitiesnoconv('NssuiviprodEvtUrlDeleted', $this->getDisplayLabel()), $details);
+		} else {
+			$this->db->rollback();
 		}
 
 		return $result;
@@ -1095,6 +1122,19 @@ class SiteUrl extends CommonObject
 		nssuiviprodAddSiteEvent($this->db, $user, (int) $this->fk_site, $langs->transnoentitiesnoconv('NssuiviprodEvtUrlMoved', $langs->transnoentitiesnoconv($direction == 'up' ? 'NssuiviprodEvtUp' : 'NssuiviprodEvtDown'), $this->getDisplayLabel()));
 
 		return 1;
+	}
+
+	/**
+	 * Return the number of plugins of the URL (deleted with it)
+	 *
+	 * @return	int
+	 */
+	public function countPlugins()
+	{
+		$resql = $this->db->query("SELECT COUNT(rowid) as nb FROM ".$this->db->prefix()."nssuiviprod_siteplugin WHERE fk_siteurl = ".((int) $this->id));
+		$obj = ($resql ? $this->db->fetch_object($resql) : null);
+
+		return ($obj ? (int) $obj->nb : 0);
 	}
 
 	/**

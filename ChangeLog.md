@@ -1,6 +1,14 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
-## 23.0.0 - 25/10/2026
+## 23.0.1 - 25/10/2026
+- Import du fichier JSON des modules externes remonté au niveau des URL de la fiche site, en une opération : URL de l'instance du fichier retrouvée (ou créée, avec le type d'URL et l'environnement choisis dans le formulaire), version installée = version exacte de Dolibarr du fichier (créée dans le référentiel si besoin), date du dernier contrôle = date du jour, plugins de l'URL ajoutés ou mis à jour ; les onglets de plugins gardent leurs boutons et, pour une URL déjà importée, le lien vers les réglages de nslistmodexterne
+- Réglages : version actuelle par type de site (format x.y.z) ; une version installée inférieure n'est pas à jour, la version actuelle devient la dernière version des listes (vide : la plus récente version active du référentiel)
+- Réglages : option « Vérifier les versions Dolistore automatiquement après l'import des modules externes » (activée par défaut)
+- Suppression d'une URL : ses plugins sont supprimés avec elle (nombre indiqué dans la confirmation, un seul événement de l'agenda)
+- Tableau des plugins de la fiche site : cases à cocher en première colonne, description du module sous le nom du plugin (recherche comprise), colonne Éditeur avec sa recherche, tri par clic sur les en-têtes (location, produit, plugin, éditeur, version, version Dolistore ; versions comparées nombre par nombre) ; recherche par version corrigée (« 23.0 » n'était plus retrouvé)
+- Liste des plugins : colonne Éditeur affichée par défaut
+
+## 23.0.0 - 24/10/2026
 - Version initiale « Suivi des sites » (Site tracking), module NS INFO n° 172791 construit avec ModuleBuilder ; Dolibarr 20 à 24, PHP 7.4 à 8.3, framework NSINFO 23.8.0 minimum (backport des fonctions de Dolibarr 23, vérifié à l'activation) ; multisociété, attributs supplémentaires sur tous les objets
 - Sites des clients : référence automatique (modèles standard ou avancé), tiers, type de site, statut en service / arrêté, description (affichée seulement si elle est remplie) ; bandeau de tous les onglets avec le nom, le tiers et le type, modifiables par leur crayon ; derniers événements sur la fiche, nombre d'événements dans le titre de la liste de l'onglet Événements
 - URL de chaque site (une par instance) : environnement production / développement / sandbox (icône de couleur), type, libellé facultatif (onglets des plugins : icône de l'environnement puis libellé), version installée (bouton « + » pour créer une version), situation, date du dernier contrôle (date du jour par défaut), complément ; ordre par glisser-déposer

@@ -235,6 +235,8 @@ if (empty($reshook)) {
 		}
 	}
 
+	// URL of the tab of the plugins (actions of the tab; set by the import of the JSON file for the actions chained after it)
+	$pluginurlparam = GETPOSTINT('pluginurl');
 	// Label of the URL of the tab of the plugins (detail of the events of the agenda)
 	$eventurllabel = '';
 	if (GETPOSTINT('pluginurl') > 0 || GETPOSTINT('plugin_fk_siteurl') > 0) {
@@ -321,12 +323,12 @@ if (empty($reshook)) {
 		}
 		$action = '';
 	}
-	// Import the plugins of the site from the JSON file of the external modules (module nslistmodexterne): uploaded file,
-	// or file of this instance (copy written in the documents directory of nssuiviprod by nslistmodexterne)
-	if ($action == 'importplugins' && $permissiontoadd && $object->id > 0) {
-		// The plugins are imported on the URL of the tab
-		$fk_siteurl = GETPOSTINT('pluginurl');
-		$tmpurl = new SiteUrl($db);
+	// Import of the JSON file of the external modules (module nslistmodexterne), at the level of the URLs, in one operation:
+	// the URL of the instance of the file is found in the site (or created), its installed version becomes the exact
+	// Dolibarr version of the file (created in the referential if needed), its date of last check is today, and its
+	// plugins are added or updated. File uploaded, or file of this instance (copy written by nslistmodexterne)
+	if ($action == 'importurl' && $permissiontoadd && $object->id > 0) {
+		$fk_siteurl = 0;
 		$content = false;
 		if (GETPOST('fromlocal', 'alpha')) {
 			$localjsonfile = SitePlugin::getLocalJsonFilePath();
@@ -336,60 +338,140 @@ if (empty($reshook)) {
 		} elseif (!empty($_FILES['pluginjsonfile']['tmp_name']) && is_uploaded_file($_FILES['pluginjsonfile']['tmp_name'])) {
 			$content = file_get_contents($_FILES['pluginjsonfile']['tmp_name']);
 		}
-		if ($fk_siteurl <= 0 || $tmpurl->fetch($fk_siteurl) <= 0 || (int) $tmpurl->fk_site != (int) $object->id) {
-			setEventMessages($langs->trans('ErrorFieldRequired', $langs->transnoentitiesnoconv('SiteUrl')), null, 'errors');
-		} elseif ($content === false || $content === '') {
-			setEventMessages($langs->trans('ErrorPluginJsonNoFile'), null, 'errors');
+		$data = (($content === false || $content === '') ? null : json_decode($content, true));
+		$instanceurl = (is_array($data) && !empty($data['instance']['url'])) ? trim((string) $data['instance']['url']) : '';
+		$dolversion = (is_array($data) && !empty($data['instance']['dolibarr_version'])) ? dol_substr(trim((string) $data['instance']['dolibarr_version']), 0, 128) : '';
+		$importerror = '';
+		if ($content === false || $content === '') {
+			$importerror = $langs->trans('ErrorPluginJsonNoFile');
+		} elseif (!is_array($data) || (isset($data['generator']) && $data['generator'] != 'nslistmodexterne') || empty($data['modules']) || !is_array($data['modules'])) {
+			$importerror = $langs->trans('ErrorPluginJsonInvalid');
+		} elseif (!preg_match('/^https?:\/\//i', $instanceurl)) {
+			$importerror = $langs->trans('ErrorUrlJsonNoInstance');
 		} else {
-			$siteplugin = new SitePlugin($db);
-			$data = json_decode($content, true);
-			// Address of the instance of the file different from the URL of the tab: warning only
-			$instanceurl = (is_array($data) && !empty($data['instance']['url'])) ? (string) $data['instance']['url'] : '';
-			if ($instanceurl !== '' && SitePlugin::findUrlOfInstance($db, $object->id, $instanceurl) != $fk_siteurl) {
-				setEventMessages($langs->trans('WarningPluginJsonOtherUrl', $instanceurl, $tmpurl->url), null, 'warnings');
+			$fk_siteurl = SitePlugin::findUrlOfInstance($db, $object->id, $instanceurl);
+			if ($fk_siteurl == -2) {
+				$importerror = $langs->trans('ErrorPluginJsonSeveralUrls', dol_escape_htmltag($instanceurl));
 			}
+		}
+
+		$details = array();
+		$urlcreated = 0;
+		$versioncreated = 0;
+		$db->begin();
+		$tmpurl = new SiteUrl($db);
+		// Exact Dolibarr version of the file in the referential of the type of the site (created if needed)
+		$fk_siteversion = 0;
+		if (!$importerror && $dolversion !== '' && (int) $object->fk_typesite > 0) {
+			$resql = $db->query("SELECT v.rowid FROM ".$db->prefix()."nssuiviprod_siteversion as v WHERE v.fk_typesite = ".((int) $object->fk_typesite)." AND v.ref = '".$db->escape($dolversion)."' AND v.entity IN (".getEntity('siteversion').")");
+			if ($resql && ($obj = $db->fetch_object($resql))) {
+				$fk_siteversion = (int) $obj->rowid;
+			} else {
+				$tmpversion = new SiteVersion($db);
+				$tmpversion->ref = $dolversion;
+				$tmpversion->fk_typesite = (int) $object->fk_typesite;
+				$tmpversion->state = SiteVersion::STATE_SUPPORTED;
+				$tmpversion->status = SiteVersion::STATUS_VALIDATED;
+				$fk_siteversion = $tmpversion->create($user);
+				if ($fk_siteversion > 0) {
+					$versioncreated = 1;	// Message after the commit
+					$details[] = $langs->transnoentitiesnoconv('UrlJsonVersionCreated', $dolversion);
+				} else {
+					$importerror = ($tmpversion->error ? $tmpversion->error : $langs->trans('Error').' : '.$langs->trans('SiteVersion').' '.dol_escape_htmltag($dolversion));
+				}
+			}
+		}
+		// URL of the instance: updated, or created with the type and the environment chosen in the form
+		if (!$importerror) {
+			if ($fk_siteurl > 0 && $tmpurl->fetch($fk_siteurl) > 0) {
+				$tmpurl->fk_siteversion = ($fk_siteversion > 0 ? $fk_siteversion : $tmpurl->fk_siteversion);
+				$tmpurl->date_check = dol_now();
+				if ($tmpurl->update($user) > 0) {
+					$details[] = $langs->transnoentitiesnoconv('UrlJsonUrlUpdated', $tmpurl->getDisplayLabel());
+				} else {
+					$importerror = $tmpurl->error;
+				}
+			} else {
+				$tmpurl->fk_site = $object->id;
+				$tmpurl->url = dol_substr($instanceurl, 0, 255);
+				$tmpurl->label = '';
+				$tmpurl->fk_typeurl = GETPOSTINT('import_fk_typeurl');
+				if (!array_key_exists((int) $tmpurl->fk_typeurl, nssuiviprodGetDictionary($db, 'c_nssuiviprod_typeurl'))) {
+					$tmpurl->fk_typeurl = (int) key(nssuiviprodGetDictionary($db, 'c_nssuiviprod_typeurl'));	// First active type of URL
+				}
+				$tmpurl->environment = (in_array(GETPOSTINT('import_environment'), array(1, 2, 3)) ? GETPOSTINT('import_environment') : 1);
+				$tmpurl->fk_siteversion = ($fk_siteversion > 0 ? $fk_siteversion : null);
+				$tmpurl->date_check = dol_now();
+				if ($tmpurl->create($user) > 0) {
+					$urlcreated = 1;
+					$details[] = $langs->transnoentitiesnoconv('UrlJsonUrlCreated', $tmpurl->getDisplayLabel());
+				} else {
+					$importerror = $tmpurl->error;
+				}
+			}
+			$fk_siteurl = (int) $tmpurl->id;
+		}
+		// Plugins of the URL
+		if (!$importerror) {
+			$siteplugin = new SitePlugin($db);
 			SitePlugin::$noevent = true;	// One event for the whole import
 			$result = $siteplugin->importFromJson($user, $object->id, $data, $fk_siteurl);
 			SitePlugin::$noevent = false;
-			if (is_array($result)) {
-				$details = array(
-					$langs->transnoentitiesnoconv('NssuiviprodEvtImportFile', GETPOST('fromlocal', 'alpha') ? SitePlugin::getLocalJsonFilePath() : dol_sanitizeFileName((string) $_FILES['pluginjsonfile']['name'])),
-					$langs->transnoentitiesnoconv('PluginJsonImported', $result['created'], $result['updated'], $result['linked']),
-				);
-				if ($instanceurl !== '') {
-					$details[] = $langs->transnoentitiesnoconv('NssuiviprodEvtImportInstance', $instanceurl);
-				}
-				if (count($result['added'])) {
-					$details[] = $langs->transnoentitiesnoconv('PluginJsonAdded', count($result['added'])).' : '.implode(', ', $result['added']);
-				}
-				if (count($result['missing'])) {
-					$details[] = $langs->transnoentitiesnoconv('PluginJsonMissing', count($result['missing'])).' : '.implode(', ', $result['missing']);
-				}
-				nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtPluginsImported', $tmpurl->getDisplayLabel()), $details);
-				setEventMessages($langs->trans('PluginJsonImported', $result['created'], $result['updated'], $result['linked']), null, 'mesgs');
-				if (count($result['added'])) {
-					setEventMessages($langs->trans('PluginJsonAdded', count($result['added'])).' : '.dol_escape_htmltag(implode(', ', $result['added'])), null, 'warnings');
-				}
-				if (count($result['missing'])) {
-					setEventMessages($langs->trans('PluginJsonMissing', count($result['missing'])).' : '.dol_escape_htmltag(implode(', ', $result['missing'])), null, 'warnings');
-				}
-				// Then the check of the versions on the Dolistore, then the link to the products (helped by the Dolistore
-				// references found): actions below, on the URL of the tab
-				$afterimport = 1;
-				$action = 'checkdolistore';
-			} else {
-				setEventMessages($siteplugin->error, $siteplugin->errors, 'errors');
+			if (!is_array($result)) {
+				$importerror = $siteplugin->error;
 			}
 		}
-		if (empty($afterimport)) {
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$fk_siteurl.'#siteplugins');
+		if ($importerror) {
+			$db->rollback();
+			setEventMessages($importerror, null, 'errors');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'#siteurls');
+			exit;
+		}
+		$db->commit();
+
+		if ($fk_siteversion > 0) {
+			array_unshift($details, $langs->transnoentitiesnoconv('UrlJsonVersionSet', $dolversion));
+		}
+		if ($versioncreated) {
+			setEventMessages($langs->trans('UrlJsonVersionCreated', dol_escape_htmltag($dolversion)), null, 'mesgs');
+		}
+		if ($dolversion !== '' && $fk_siteversion <= 0) {
+			setEventMessages($langs->trans('WarningUrlJsonNoVersion', dol_escape_htmltag($dolversion)), null, 'warnings');	// Site without type of site
+		}
+		array_unshift($details, $langs->transnoentitiesnoconv('NssuiviprodEvtImportInstance', $instanceurl));
+		array_unshift($details, $langs->transnoentitiesnoconv('NssuiviprodEvtImportFile', GETPOST('fromlocal', 'alpha') ? SitePlugin::getLocalJsonFilePath() : dol_sanitizeFileName((string) $_FILES['pluginjsonfile']['name'])));
+		$details[] = $langs->transnoentitiesnoconv('PluginJsonImported', $result['created'], $result['updated'], $result['linked']);
+		if (count($result['added'])) {
+			$details[] = $langs->transnoentitiesnoconv('PluginJsonAdded', count($result['added'])).' : '.implode(', ', $result['added']);
+		}
+		if (count($result['missing'])) {
+			$details[] = $langs->transnoentitiesnoconv('PluginJsonMissing', count($result['missing'])).' : '.implode(', ', $result['missing']);
+		}
+		nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtPluginsImported', $tmpurl->getDisplayLabel()), $details);
+		setEventMessages($langs->trans($urlcreated ? 'UrlJsonUrlCreated' : 'UrlJsonUrlUpdated', dol_escape_htmltag($tmpurl->getDisplayLabel())).($fk_siteversion > 0 ? ' - '.$langs->trans('UrlJsonVersionSet', dol_escape_htmltag($dolversion)) : ''), null, 'mesgs');
+		setEventMessages($langs->trans('PluginJsonImported', $result['created'], $result['updated'], $result['linked']), null, 'mesgs');
+		if (count($result['added'])) {
+			setEventMessages($langs->trans('PluginJsonAdded', count($result['added'])).' : '.dol_escape_htmltag(implode(', ', $result['added'])), null, 'warnings');
+		}
+		if (count($result['missing'])) {
+			setEventMessages($langs->trans('PluginJsonMissing', count($result['missing'])).' : '.dol_escape_htmltag(implode(', ', $result['missing'])), null, 'warnings');
+		}
+		// Then, if the option of the setup is enabled, the check of the versions on the Dolistore and the link to the
+		// products (helped by the Dolistore references found): actions below, on the URL of the import
+		$pluginurlparam = $fk_siteurl;
+		$eventurllabel = $tmpurl->getDisplayLabel();
+		if (getDolGlobalInt('NSSUIVIPROD_DOLISTORE_AUTO')) {
+			$afterimport = 1;
+			$action = 'checkdolistore';
+		} else {
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$fk_siteurl.'#siteurls');
 			exit;
 		}
 	}
 	// Check the current version of the plugins of the site on the Dolistore
 	if ($action == 'checkdolistore' && $permissiontoadd && $object->id > 0) {
 		$tmpplugin = new SitePlugin($db);
-		$plugins = $tmpplugin->fetchAll('ASC', 't.rowid', 0, 0, '(t.fk_site:=:'.((int) $object->id).') AND (t.fk_siteurl:=:'.GETPOSTINT('pluginurl').')');
+		$plugins = $tmpplugin->fetchAll('ASC', 't.rowid', 0, 0, '(t.fk_site:=:'.((int) $object->id).') AND (t.fk_siteurl:=:'.$pluginurlparam.')');
 		$nbfound = 0;
 		$nbnotfound = 0;
 		$nberror = 0;
@@ -423,14 +505,14 @@ if (empty($reshook)) {
 		if (!empty($afterimport)) {
 			$action = 'linkproducts';	// After an import: link to the products, with the Dolistore references found
 		} else {
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'#siteplugins');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurlparam.'#siteplugins');
 			exit;
 		}
 	}
 	// Link the plugins of the URL without product to the products of the plugins
 	if ($action == 'linkproducts' && $permissiontoadd && $object->id > 0) {
 		$tmpplugin = new SitePlugin($db);
-		$plugins = $tmpplugin->fetchAll('ASC', 't.rowid', 0, 0, '(t.fk_site:=:'.((int) $object->id).') AND (t.fk_siteurl:=:'.GETPOSTINT('pluginurl').')');
+		$plugins = $tmpplugin->fetchAll('ASC', 't.rowid', 0, 0, '(t.fk_site:=:'.((int) $object->id).') AND (t.fk_siteurl:=:'.$pluginurlparam.')');
 		$nb = SitePlugin::linkProducts(is_array($plugins) ? $plugins : array());
 		if ($nb < 0) {
 			setEventMessages($db->lasterror(), null, 'errors');
@@ -454,7 +536,7 @@ if (empty($reshook)) {
 				setEventMessages($langs->trans('PluginProductsLinked', $nb), null, 'mesgs');
 			}
 		}
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'#siteplugins');
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurlparam.'#siteplugins');
 		exit;
 	}
 	// Set a plugin of the site rented or not rented (click on its icon)
@@ -677,7 +759,15 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 	// Confirmation to delete an URL or a plugin of the site
 	if ($action == 'deleteurl' || $action == 'deleteplugin') {
-		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id.'&childid='.GETPOSTINT('childid').'&pluginurl='.GETPOSTINT('pluginurl'), $langs->trans($action == 'deleteurl' ? 'DeleteSiteUrl' : 'DeleteSitePlugin'), $langs->trans('ConfirmDeleteObject'), 'confirm_'.$action, '', 0, 1);
+		// Deletion of an URL: its plugins are deleted with it
+		$confirmtext = $langs->trans('ConfirmDeleteObject');
+		if ($action == 'deleteurl') {
+			$tmpdelurl = new SiteUrl($db);
+			if ($tmpdelurl->fetch(GETPOSTINT('childid')) > 0 && $tmpdelurl->countPlugins() > 0) {
+				$confirmtext = $langs->trans('ConfirmDeleteUrlWithPlugins', $tmpdelurl->countPlugins());
+			}
+		}
+		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id.'&childid='.GETPOSTINT('childid').'&pluginurl='.GETPOSTINT('pluginurl'), $langs->trans($action == 'deleteurl' ? 'DeleteSiteUrl' : 'DeleteSitePlugin'), $confirmtext, 'confirm_'.$action, '', 0, 1);
 	}
 	// Confirmation to delete the selected plugins
 	if ($action == 'predeleteplugins') {
@@ -883,6 +973,34 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 	print '<br><a name="siteurls"></a>';
 	print load_fiche_titre($langs->trans('SiteUrls').'<span class="badge marginleftonlyshort">'.count($urls).'</span>', '', $siteurl->picto);
+	// Import of the JSON file of the external modules (module nslistmodexterne): URL of the instance of the file found or
+	// created, exact Dolibarr version, date of check, and plugins of the URL, in one operation
+	if ($permissiontoadd) {
+		$localjsonfile = SitePlugin::getLocalJsonFilePath();
+		$envs = array(1 => $langs->trans('UrlEnvProd'), 2 => $langs->trans('UrlEnvDev'), 3 => $langs->trans('UrlEnvSandbox'));
+		print '<form method="POST" enctype="multipart/form-data" action="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'">';
+		print '<input type="hidden" name="token" value="'.newToken().'">';
+		print '<input type="hidden" name="action" value="importurl">';
+		print '<div class="div-table-responsive-no-min marginbottomonly">';
+		print '<table class="noborder centpercent">';
+		print '<tr class="oddeven"><td class="titlefield">'.img_picto('', 'fa-file-import', 'class="pictofixedwidth"').$langs->trans('PluginJsonImport');
+		print $form->textwithpicto('', $langs->trans('UrlJsonImportHelp'));
+		print '</td><td>';
+		// Type of URL and environment of the URL if it is created, then the file
+		print '<span class="opacitymedium small">'.$langs->trans('UrlJsonNewUrl').'</span> ';
+		print $form->selectarray('import_fk_typeurl', $typeurls, (int) key($typeurls), 0, 0, 0, '', 0, 0, 0, '', 'maxwidth150 small');
+		print ' '.$form->selectarray('import_environment', $envs, 1, 0, 0, 0, '', 0, 0, 0, '', 'maxwidth150 small');
+		print '<br><input type="file" name="pluginjsonfile" accept=".json,application/json"> ';
+		print '<input type="submit" class="button small" value="'.$langs->trans('PluginJsonImportFile').'">';
+		if (is_readable($localjsonfile)) {
+			print ' <input type="submit" class="button small" name="fromlocal" value="'.$langs->trans('PluginJsonImportLocal').'">';
+			print ' <span class="opacitymedium small">'.$langs->trans('PluginJsonFileDate').' : '.dol_print_date(dol_filemtime($localjsonfile), 'dayhour', 'tzuser').'</span>';
+		}
+		print '</td></tr>';
+		print '</table>';
+		print '</div>';
+		print '</form>';
+	}
 	print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'">';
 	print '<input type="hidden" name="token" value="'.newToken().'">';
 	print '<input type="hidden" name="action" value="addurl">';
@@ -901,7 +1019,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		// Installed version, situation (latest version of the type of the site when it is not the installed one)
 		print '<td class="nowraponall">'.dol_escape_htmltag(isset($versions[(int) $tmpurl->fk_siteversion]) ? $versions[(int) $tmpurl->fk_siteversion] : '').'</td>';
 		print '<td class="center nowraponall">'.SiteVersion::getSituationBadge($tmpurl->getSituation());
-		if ($latest && $latest['id'] != (int) $tmpurl->fk_siteversion) {
+		if ($latest && !SiteVersion::isLatest($db, $latest, (int) $tmpurl->fk_siteversion)) {
 			print '<br><span class="opacitymedium small">'.$langs->trans('LatestVersion').' : '.dol_escape_htmltag($latest['ref']).'</span>';
 		}
 		print '</td>';
@@ -1018,59 +1136,50 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			// Icon of the Dolistore with an update badge
 			$morehtmlright .= '<a class="btnTitle reposition classfortooltip" href="'.$_SERVER['PHP_SELF'].$urlparam.'&action=checkdolistore&token='.newToken().'" title="'.dol_escape_htmltag($langs->trans('PluginDolistoreCheck')).'"><img src="'.dol_buildpath('/nssuiviprod/img/dolistore_update.svg', 1).'" class="valignmiddle" style="height: 24px" alt="'.dol_escape_htmltag($langs->trans('PluginDolistoreCheck')).'"></a>';
 		}
-		// Import of the plugins of the URL of the tab from the JSON file of the external modules (module nslistmodexterne)
-		if ($permissiontoadd && $pluginurl > 0) {
-			$localjsonfile = SitePlugin::getLocalJsonFilePath();
-			print '<form method="POST" enctype="multipart/form-data" action="'.$_SERVER['PHP_SELF'].$urlparam.'">';
-			print '<input type="hidden" name="token" value="'.newToken().'">';
-			print '<input type="hidden" name="action" value="importplugins">';
-			print '<input type="hidden" name="pluginurl" value="'.$pluginurl.'">';
+		// Where to get the JSON file of the external modules of the URL of the tab (setup of the module nslistmodexterne of its
+		// Dolibarr; the file is imported in the section of the URLs), and buttons of the tab
+		// Only for an URL already imported once (at least one of its plugins comes from an import)
+		$urlimported = false;
+		foreach ($plugins as $tmpplugin) {
+			if (!empty($tmpplugin->import_key)) {
+				$urlimported = true;
+				break;
+			}
+		}
+		$tmpurladdress = (($permissiontoadd && $pluginurl > 0 && $urlimported && isset($urls[$pluginurl])) ? trim((string) $urls[$pluginurl]->url) : '');
+		if (preg_match('/^https?:\/\//i', $tmpurladdress)) {
 			print '<div class="div-table-responsive-no-min marginbottomonly">';
 			print '<table class="noborder centpercent">';
-			// Where to get the file: setup of the module nslistmodexterne of the Dolibarr of the URL of the tab
-			$tmpurladdress = (isset($urls[$pluginurl]) ? trim((string) $urls[$pluginurl]->url) : '');
-			if (preg_match('/^https?:\/\//i', $tmpurladdress)) {
-				$nslistmodexterneurl = rtrim($tmpurladdress, '/').'/custom/nslistmodexterne/admin/setup.php';
-				print '<tr class="oddeven"><td colspan="3"><span class="opacitymedium">'.img_picto('', 'fa-info-circle', 'class="pictofixedwidth"').$langs->trans('PluginJsonWhere').'</span> ';
-				print '<a href="'.dol_escape_htmltag($nslistmodexterneurl).'" target="_blank" rel="noopener noreferrer">'.img_picto('', 'fa-external-link-alt', 'class="pictofixedwidth"').dol_escape_htmltag($nslistmodexterneurl).'</a>';
-				// Quick copy button just after the URL (same copy as the module nsclipboardcpbutton)
-				print '<span class="nssuiviprodcp">'.showValueWithClipboardCPButton($nslistmodexterneurl, 0, 'none').'</span></td></tr>';
-				print '<script>
-				// Copy with the API navigator.clipboard (the standard copy with execCommand fails on some pages), set on "load" to replace the handler of lib_foot.js.php
-				jQuery(window).on("load", function() {
-					jQuery(".nssuiviprodcp .clipboardCPButton").off("click").on("click", function() {
-						var cp = jQuery(this).closest(".clipboardCP");
-						var value = cp.children(".clipboardCPValue").text();
-						var showTick = function() {
-							cp.children(".clipboardCPButton").hide();
-							cp.children(".clipboardCPTick").css("display", "inline-block");
-							setTimeout(function() { cp.children(".clipboardCPTick").hide(); cp.children(".clipboardCPButton").css("display", "inline-block"); }, 2000);
-						};
-						if (navigator.clipboard && window.isSecureContext) {
-							navigator.clipboard.writeText(value).then(showTick, function(e) { console.log("nssuiviprod: copy failed", e); });
-						} else {
-							var tmp = jQuery("<textarea>").val(value).css({position: "fixed", top: 0, left: 0, opacity: 0}).appendTo("body");
-							tmp[0].select();
-							try { if (document.execCommand("copy")) { showTick(); } } catch (e) { console.log("nssuiviprod: copy failed", e); }
-							tmp.remove();
-						}
-					});
+			$nslistmodexterneurl = rtrim($tmpurladdress, '/').'/custom/nslistmodexterne/admin/setup.php';
+			print '<tr class="oddeven"><td><span class="opacitymedium">'.img_picto('', 'fa-info-circle', 'class="pictofixedwidth"').$langs->trans('PluginJsonWhere').'</span> ';
+			print '<a href="'.dol_escape_htmltag($nslistmodexterneurl).'" target="_blank" rel="noopener noreferrer">'.img_picto('', 'fa-external-link-alt', 'class="pictofixedwidth"').dol_escape_htmltag($nslistmodexterneurl).'</a>';
+			// Quick copy button just after the URL (same copy as the module nsclipboardcpbutton)
+			print '<span class="nssuiviprodcp">'.showValueWithClipboardCPButton($nslistmodexterneurl, 0, 'none').'</span></td>';
+			print '<td class="right nowraponall">'.$morehtmlright.'</td></tr>';
+			print '<script>
+			// Copy with the API navigator.clipboard (the standard copy with execCommand fails on some pages), set on "load" to replace the handler of lib_foot.js.php
+			jQuery(window).on("load", function() {
+				jQuery(".nssuiviprodcp .clipboardCPButton").off("click").on("click", function() {
+					var cp = jQuery(this).closest(".clipboardCP");
+					var value = cp.children(".clipboardCPValue").text();
+					var showTick = function() {
+						cp.children(".clipboardCPButton").hide();
+						cp.children(".clipboardCPTick").css("display", "inline-block");
+						setTimeout(function() { cp.children(".clipboardCPTick").hide(); cp.children(".clipboardCPButton").css("display", "inline-block"); }, 2000);
+					};
+					if (navigator.clipboard && window.isSecureContext) {
+						navigator.clipboard.writeText(value).then(showTick, function(e) { console.log("nssuiviprod: copy failed", e); });
+					} else {
+						var tmp = jQuery("<textarea>").val(value).css({position: "fixed", top: 0, left: 0, opacity: 0}).appendTo("body");
+						tmp[0].select();
+						try { if (document.execCommand("copy")) { showTick(); } } catch (e) { console.log("nssuiviprod: copy failed", e); }
+						tmp.remove();
+					}
 				});
-				</script>';
-			}
-			print '<tr class="oddeven"><td class="titlefield">'.img_picto('', 'fa-file-import', 'class="pictofixedwidth"').$langs->trans('PluginJsonImport');
-			print $form->textwithpicto('', $langs->trans('PluginJsonImportHelp'));
-			print '</td><td>';
-			print '<input type="file" name="pluginjsonfile" accept=".json,application/json"> ';
-			print '<input type="submit" class="button small" value="'.$langs->trans('PluginJsonImportFile').'">';
-			if (is_readable($localjsonfile)) {
-				print ' <input type="submit" class="button small" name="fromlocal" value="'.$langs->trans('PluginJsonImportLocal').'">';
-				print ' <span class="opacitymedium small">'.$langs->trans('PluginJsonFileDate').' : '.dol_print_date(dol_filemtime($localjsonfile), 'dayhour', 'tzuser').'</span>';
-			}
-			print '</td><td class="right nowraponall">'.$morehtmlright.'</td></tr>';
+			});
+			</script>';
 			print '</table>';
 			print '</div>';
-			print '</form>';
 		} elseif ($morehtmlright) {
 			print '<div class="right marginbottomonly">'.$morehtmlright.'</div>';
 		}
@@ -1082,30 +1191,33 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<div class="div-table-responsive-no-min">';
 		print '<table class="noborder centpercent" id="tablesiteplugins">';
 		print '<tr class="liste_titre">';
-		print '<td class="center">'.img_picto($langs->trans('PluginRental'), 'fa-file-contract', 'class="opacitymedium"').'</td>';
+		print '<td class="center width25">'.($permissiontoadd && !empty($plugins) ? '<input type="checkbox" id="checkallplugins" title="'.dol_escape_htmltag($langs->trans('All')).'">' : '').'</td>';
+		// Titles: a click sorts the rows (client side), a second click reverses the order
+		print '<td class="center pluginsort cursorpointer" data-sort="rental" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.img_picto($langs->trans('PluginRental'), 'fa-file-contract', 'class="opacitymedium"').'</td>';
 		if ($withproduct) {
-			print '<td>'.$langs->trans('Product').'</td>';
+			print '<td class="pluginsort cursorpointer" data-sort="product" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('Product').'</td>';
 		}
-		print '<td>'.$langs->trans('PluginLabel').'</td>';
+		print '<td class="pluginsort cursorpointer" data-sort="name" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginLabel').'</td>';
+		print '<td class="pluginsort cursorpointer" data-sort="publisher" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginPublisher').'</td>';
 		print '<td class="center">'.img_picto('Dolistore', 'fa-store', 'class="opacitymedium"').'</td>';
 		print '<td class="center">'.img_picto($langs->trans('PluginPublisherUrl'), 'fa-globe', 'class="opacitymedium"').'</td>';
-		print '<td>'.$langs->trans('PluginVersion').'</td><td>'.$langs->trans('PluginDolistoreVersion').'</td><td></td>';
-		print '<td class="center">'.($permissiontoadd && !empty($plugins) ? '<input type="checkbox" id="checkallplugins" title="'.dol_escape_htmltag($langs->trans('All')).'">' : '').'</td></tr>';
-		$nbcols = ($withproduct ? 9 : 8);
+		print '<td class="pluginsort cursorpointer" data-sort="version" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginVersion').'</td><td class="pluginsort cursorpointer" data-sort="dolistore" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginDolistoreVersion').'</td><td></td></tr>';
+		$nbcols = ($withproduct ? 10 : 9);
 		// Search fields (filter of the rows in the page)
 		if (!empty($plugins)) {
 			print '<tr class="liste_titre_filter">';
+			// Mass action: delete the selected plugins
+			print '<td class="liste_titre center">'.($permissiontoadd ? '<button type="submit" class="button smallpaddingimp small" name="massdeleteplugins" value="1" title="'.dol_escape_htmltag($langs->trans('PluginDeleteSelected')).'">'.img_picto('', 'delete').'</button>' : '').'</td>';
 			print '<td class="liste_titre center">'.$form->selectarray('search_plugin_rental', array('1' => $langs->trans('PluginRentalYes'), '0' => $langs->trans('PluginRentalNo')), '', 1, 0, 0, 'data-filter="rental"', 0, 0, 0, '', 'maxwidth75 pluginfilter').'</td>';
 			if ($withproduct) {
 				print '<td class="liste_titre"><input type="text" class="flat maxwidth100 pluginfilter" data-filter="product"></td>';
 			}
 			print '<td class="liste_titre"><input type="text" class="flat maxwidth150 pluginfilter" data-filter="label"></td>';
+			print '<td class="liste_titre"><input type="text" class="flat maxwidth100 pluginfilter" data-filter="publisher"></td>';
 			print '<td class="liste_titre"></td><td class="liste_titre"></td>';
 			print '<td class="liste_titre"><input type="text" class="flat maxwidth75 pluginfilter" data-filter="version"></td>';
 			print '<td class="liste_titre center">'.$form->selectarray('search_plugin_newer', array('1' => $langs->trans('PluginDolistoreNewer')), '', 1, 0, 0, 'data-filter="newer"', 0, 0, 0, '', 'maxwidth100 pluginfilter').'</td>';
 			print '<td class="liste_titre"></td>';
-			// Mass action: delete the selected plugins
-			print '<td class="liste_titre center">'.($permissiontoadd ? '<button type="submit" class="button smallpaddingimp small" name="massdeleteplugins" value="1" title="'.dol_escape_htmltag($langs->trans('PluginDeleteSelected')).'">'.img_picto('', 'delete').'</button>' : '').'</td>';
 			print '</tr>';
 		}
 		if (empty($plugins)) {
@@ -1122,7 +1234,8 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				$productref = $tmpproduct->ref.' '.$tmpproduct->label;
 			}
 			$newer = ((string) $tmpplugin->dolistore_version !== '' && (string) $tmpplugin->version !== '' && version_compare((string) $tmpplugin->dolistore_version, (string) $tmpplugin->version, '>'));
-			print '<tr class="oddeven pluginrow" data-rental="'.((int) $tmpplugin->rental).'" data-product="'.dol_escape_htmltag(dol_strtolower($productref)).'" data-label="'.dol_escape_htmltag(dol_strtolower($tmpplugin->label.' '.$tmpplugin->module_name)).'" data-version="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->version)).'" data-newer="'.($newer ? 1 : 0).'">';
+			print '<tr class="oddeven pluginrow" data-rental="'.((int) $tmpplugin->rental).'" data-product="'.dol_escape_htmltag(dol_strtolower($productref)).'" data-label="'.dol_escape_htmltag(dol_strtolower($tmpplugin->label.' '.$tmpplugin->module_name.' '.$tmpplugin->module_description)).'" data-publisher="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->publisher)).'" data-name="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->label)).'" data-dolistore="'.dol_escape_htmltag((string) $tmpplugin->dolistore_version).'" data-version="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->version)).'" data-newer="'.($newer ? 1 : 0).'">';
+			print '<td class="center">'.($permissiontoadd ? '<input type="checkbox" class="checkforselectplugin" name="toselect[]" value="'.((int) $tmpplugin->id).'">' : '').'</td>';
 			// Rental state: colored icon, a click switches it
 			print '<td class="center width25">';
 			if ($permissiontoadd) {
@@ -1134,7 +1247,14 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			if ($withproduct) {
 				print '<td class="tdoverflowmax200">'.($productref !== '' ? $tmpproduct->getNomUrl(1) : '').'</td>';
 			}
-			print '<td class="tdoverflowmax300">'.dol_escape_htmltag($tmpplugin->label).(isset($importstates[(int) $tmpplugin->id]) ? SitePlugin::getImportStateBadge($importstates[(int) $tmpplugin->id]) : '').'</td>';
+			print '<td class="tdoverflowmax400">'.dol_escape_htmltag($tmpplugin->label).(isset($importstates[(int) $tmpplugin->id]) ? SitePlugin::getImportStateBadge($importstates[(int) $tmpplugin->id]) : '');
+			// Description of the module (JSON file of the external modules), full text in the tooltip
+			$tmpdesc = trim(dol_string_nohtmltag((string) $tmpplugin->module_description, 1));
+			if ($tmpdesc !== '') {
+				print '<br><span class="opacitymedium small" title="'.dol_escape_htmltag($tmpdesc).'">'.dol_escape_htmltag(dol_trunc($tmpdesc, 120)).'</span>';
+			}
+			print '</td>';
+			print '<td class="tdoverflowmax150">'.dol_escape_htmltag((string) $tmpplugin->publisher).'</td>';
 			print '<td class="center width25">'.$tmpplugin->getLinks('dolistore').'</td>';
 			print '<td class="center width25">'.$tmpplugin->getLinks('publisher').'</td>';
 			print '<td class="nowraponall">'.dol_escape_htmltag($tmpplugin->version).'</td>';
@@ -1145,11 +1265,11 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				print '<a class="reposition" href="'.$_SERVER['PHP_SELF'].$urlparam.'&action=deleteplugin&childid='.$tmpplugin->id.'&token='.newToken().'">'.img_delete().'</a>';
 			}
 			print '</td>';
-			print '<td class="center">'.($permissiontoadd ? '<input type="checkbox" class="checkforselectplugin" name="toselect[]" value="'.((int) $tmpplugin->id).'">' : '').'</td>';
 			print '</tr>';
 		}
 		if ($permissiontoadd && $pluginurl > 0) {
 			print '<tr class="oddeven">';
+			print '<td></td>';
 			print '<td class="center"><input type="checkbox" name="plugin_rental" value="1" title="'.dol_escape_htmltag($langs->trans('PluginRentalYes')).'"'.(GETPOSTINT('plugin_rental') ? ' checked' : '').'></td>';
 			if ($withproduct) {
 				print '<td>';
@@ -1177,11 +1297,11 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				print '</td>';
 			}
 			print '<td><input type="text" name="plugin_label" class="minwidth200" value="'.dol_escape_htmltag(GETPOST('plugin_label', 'alphanohtml')).'"></td>';
+			print '<td></td>';
 			print '<td></td><td></td>';
 			print '<td><input type="text" name="plugin_version" class="maxwidth100" value="'.dol_escape_htmltag(GETPOST('plugin_version', 'alphanohtml')).'"></td>';
 			print '<td></td>';
 			print '<td class="right"><input type="submit" class="button small" value="'.$langs->trans('Add').'"></td>';
-			print '<td></td>';
 			print '</tr>';
 		}
 		print '</table>';
@@ -1198,13 +1318,33 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '		jQuery("#tablesiteplugins tr.pluginrow").each(function() {'."\n";
 		print '			var row = jQuery(this), show = true;'."\n";
 		print '			jQuery.each(filters, function(key, value) {'."\n";
-		print '				var data = String(row.data(key));'."\n";
+		print '				var data = String(row.attr("data-" + key) || "");'."\n";
 		print '				if ((key === "rental" || key === "newer") ? data !== value : data.indexOf(value) < 0) { show = false; }'."\n";
 		print '			});'."\n";
 		print '			row.toggle(show);'."\n";
 		print '		});'."\n";
 		print '	}'."\n";
 		print '	jQuery("#tablesiteplugins .pluginfilter").on("keyup change", filterPlugins);'."\n";
+		// Sort of the rows of the plugins: text, or version numbers compared number by number
+		print '	function comparePluginValues(a, b, key) {'."\n";
+		print '		if (key === "version" || key === "dolistore") {'."\n";
+		print '			var pa = String(a).split(/[^0-9]+/), pb = String(b).split(/[^0-9]+/);'."\n";
+		print '			if (a === "") { return (b === "" ? 0 : 1); } if (b === "") { return -1; }'."\n";
+		print '			for (var i = 0; i < Math.max(pa.length, pb.length); i++) { var na = parseInt(pa[i] || 0, 10), nb = parseInt(pb[i] || 0, 10); if (na !== nb) { return na - nb; } }'."\n";
+		print '			return 0;'."\n";
+		print '		}'."\n";
+		print '		return String(a).localeCompare(String(b), undefined, {numeric: true, sensitivity: "base"});'."\n";
+		print '	}'."\n";
+		print '	jQuery("#tablesiteplugins .pluginsort").on("click", function() {'."\n";
+		print '		var key = jQuery(this).data("sort"), asc = !(jQuery(this).data("asc") === 1);'."\n";
+		print '		jQuery("#tablesiteplugins .pluginsort").removeData("asc").find(".pluginsortarrow").remove();'."\n";
+		print '		jQuery(this).data("asc", asc ? 1 : 0).append(\'<span class="pluginsortarrow paddingleft fas fa-caret-\' + (asc ? "up" : "down") + \'"></span>\');'."\n";
+		print '		var rows = jQuery("#tablesiteplugins tr.pluginrow").get();'."\n";
+		print '		if (!rows.length) { return; }'."\n";
+		print '		var anchor = jQuery(rows[0]).prev();'."\n";
+		print '		rows.sort(function(ra, rb) { var r = comparePluginValues(String(jQuery(ra).attr("data-" + key) || ""), String(jQuery(rb).attr("data-" + key) || ""), key); return asc ? r : -r; });'."\n";
+		print '		jQuery.each(rows, function(i, row) { anchor.after(row); anchor = jQuery(row); });'."\n";
+		print '	});'."\n";
 		print '	jQuery("#checkallplugins").on("change", function() { jQuery("#tablesiteplugins tr.pluginrow:visible .checkforselectplugin").prop("checked", jQuery(this).is(":checked")); });'."\n";
 		print '});'."\n";
 		print '</script>'."\n";

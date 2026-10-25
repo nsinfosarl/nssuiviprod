@@ -958,7 +958,7 @@ while ($i < $imaxinloop) {
 			print '<td class="center nowraponall">';
 			if (!empty($latestbytype[(int) $typebysite[(int) $object->fk_site]])) {
 				$latest = $latestbytype[(int) $typebysite[(int) $object->fk_site]];
-				$isinstalled = ($latest['id'] == (int) $object->fk_siteversion);
+				$isinstalled = SiteVersion::isLatest($db, $latest, (int) $object->fk_siteversion);
 				print ($isinstalled ? '' : '<strong>').dol_escape_htmltag($latest['ref']).($isinstalled ? '' : '</strong>');
 			}
 			print '</td>';

@@ -171,7 +171,6 @@ Permission17279121 = Accéder aux réglages du module
 # Import of the plugins from the JSON file of the external modules (module nslistmodexterne)
 #
 PluginJsonImport = Importer les modules externes
-PluginJsonImportHelp = Fichier JSON des modules externes produit par le module « Liste des modules externes » (nslistmodexterne) du Dolibarr du site. Un plugin déjà présent est mis à jour (même nom technique, ou à défaut même libellé), sinon il est créé. Il est relié au produit plugin dont la référence ou le libellé correspond au nom technique ou au libellé du module.
 PluginJsonWhere = Fichier à télécharger depuis les réglages du module « Liste des modules externes » du Dolibarr de cette URL :
 PluginJsonImportFile = Importer le fichier
 PluginJsonImportLocal = Importer le fichier de cette instance
@@ -182,8 +181,6 @@ ErrorPluginJsonInvalid = Le fichier n'est pas un fichier JSON des modules extern
 PluginUrlHelp = URL du site (instance de production, de développement, sandbox…) sur laquelle le plugin est installé
 PluginNoUrl = Sans URL
 PluginNoUrlYet = Ajoutez une URL au site : un onglet de plugins est créé pour chaque URL.
-WarningPluginJsonOtherUrl = L'adresse de l'instance du fichier (%s) ne correspond pas à cette URL (%s) : vérifiez que c'est le bon fichier.
-ErrorPluginJsonNoUrl = Aucune URL du site ne correspond à l'adresse de l'instance du fichier (%s) : ajoutez cette URL au site, puis relancez l'import.
 ErrorPluginJsonSeveralUrls = Plusieurs URL du site correspondent à l'adresse de l'instance du fichier (%s).
 PluginJsonAdded = %s plugins ajoutés par cet import
 PluginJsonMissing = %s plugins absents du fichier (conservés, à supprimer si besoin)
@@ -261,3 +258,25 @@ NssuiviprodEvtFieldChange = %s : %s → %s
 NssuiviprodEvtFieldChanged = %s : modifié
 NssuiviprodEvtEmpty = (vide)
 ErrorNumberingModuleNotSetup = Le modèle de numérotation des %s n'est pas configuré ou ne renvoie pas de référence (réglages du module Suivi des sites)
+
+#
+# Import of the JSON file at the level of the URLs, current version, Dolistore
+#
+UrlJsonImportHelp = Fichier JSON des modules externes produit par le module « Liste des modules externes » (nslistmodexterne) d'un Dolibarr. En une opération : l'URL de l'instance du fichier est retrouvée dans le site (ou créée), sa version installée devient la version exacte de Dolibarr du fichier (créée dans le référentiel si besoin), sa date de dernier contrôle devient la date du jour, et ses plugins sont ajoutés ou mis à jour.
+UrlJsonNewUrl = Si l'URL n'existe pas, elle est créée avec :
+UrlJsonUrlCreated = URL créée : %s
+UrlJsonUrlUpdated = URL mise à jour : %s
+UrlJsonVersionCreated = Version %s créée dans le référentiel des versions
+UrlJsonVersionSet = version installée %s
+ErrorUrlJsonNoInstance = Le fichier n'indique pas l'adresse de son instance Dolibarr : générez-le de nouveau avec une version à jour du module « Liste des modules externes ».
+NssuiviprodTitleDolistore = Dolistore
+NSSUIVIPROD_DOLISTORE_AUTO = Vérifier les versions Dolistore automatiquement après l'import des modules externes
+NSSUIVIPROD_DOLISTORE_AUTO_Tooltip = Après l'import du fichier JSON d'une URL, les versions de ses plugins sont recherchées sur le Dolistore, puis les plugins sont reliés aux produits. L'import est alors plus long. Sinon, utiliser le bouton « Vérifier les versions Dolistore » de l'onglet de l'URL.
+NssuiviprodCurrentVersions = Version actuelle par type de site
+NssuiviprodCurrentVersion = Version actuelle
+NssuiviprodCurrentVersionHelp = Format x.y.z (ex. 23.0.3). Une version installée inférieure n'est pas à jour (mise à jour disponible). Vide : la version la plus récente du référentiel, parmi les versions actives, sert de référence. Les versions obsolètes ou avec une faille de sécurité restent signalées comme telles.
+ErrorCurrentVersionFormat = %s : version actuelle « %s » non enregistrée, format attendu x.y.z (ex. 23.0.3)
+ConfirmDeleteUrlWithPlugins = Supprimer cette URL et ses %s plugins ?
+UrlPluginsDeleted = %s plugins supprimés avec l'URL
+WarningUrlJsonNoVersion = Version %s du fichier non enregistrée : le site n'a pas de type de site.
+PluginSortHelp = Cliquer pour trier (un second clic inverse l'ordre)

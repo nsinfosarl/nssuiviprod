@@ -108,6 +108,11 @@ class SiteVersion extends CommonObject
 	private static $cacheLatest = null;
 
 	/**
+	 * @var array<int,string>|null	Cache of the version numbers: id of version => number
+	 */
+	private static $cacheRefs = null;
+
+	/**
 	 *  'type' field format:
 	 *  	'integer', 'integer:ObjectClass:PathToClass[:AddCreateButtonOrNot[:Filter[:Sortfield]]]',
 	 *  	'select' (list of values are in 'options'. for integer list of values are in 'arrayofkeyval'),
@@ -1256,6 +1261,7 @@ class SiteVersion extends CommonObject
 		}
 		self::$cacheSituations = array();
 		self::$cacheLatest = array();
+		self::$cacheRefs = array();
 
 		$versions = array();
 		$sql = "SELECT v.rowid, v.fk_typesite, v.ref, v.state, v.status FROM ".$db->prefix()."nssuiviprod_siteversion as v";
@@ -1267,6 +1273,7 @@ class SiteVersion extends CommonObject
 		}
 		while ($obj = $db->fetch_object($resql)) {
 			$versions[(int) $obj->rowid] = $obj;
+			self::$cacheRefs[(int) $obj->rowid] = (string) $obj->ref;
 			// Latest version of the type: only the enabled versions are candidates
 			if ((int) $obj->status == self::STATUS_VALIDATED) {
 				$type = (int) $obj->fk_typesite;
@@ -1276,6 +1283,27 @@ class SiteVersion extends CommonObject
 			}
 		}
 		$db->free($resql);
+
+		// Current version of a type of site given in the setup (x.y.z): it is the latest version, the lower ones are not
+		// up to date
+		$types = array_map(function ($obj) {
+			return (int) $obj->fk_typesite;
+		}, $versions);
+		$resql = $db->query("SELECT rowid FROM ".$db->prefix()."c_nssuiviprod_typesite WHERE active = 1 AND entity IN (".getEntity('c_nssuiviprod_typesite').")");
+		while ($resql && ($obj = $db->fetch_object($resql))) {
+			$types[] = (int) $obj->rowid;	// Also the types of site without version in the referential
+		}
+		foreach (array_unique($types) as $type) {
+			$current = self::getCurrentVersion($type);
+			if ($current !== '') {
+				self::$cacheLatest[$type] = array('id' => 0, 'ref' => $current);
+				foreach ($versions as $id => $obj) {
+					if ((int) $obj->fk_typesite == $type && self::compareVersions($obj->ref, $current) == 0) {
+						self::$cacheLatest[$type]['id'] = (int) $id;
+					}
+				}
+			}
+		}
 
 		foreach ($versions as $id => $obj) {
 			$type = (int) $obj->fk_typesite;
@@ -1310,7 +1338,8 @@ class SiteVersion extends CommonObject
 	 * Return the situation of every version
 	 *
 	 * Security issue or obsolete according to the state of the version, else "update available" if a more recent
-	 * enabled version of the same type of site exists, else up to date.
+	 * enabled version of the same type of site exists (or if the version is lower than the current version of the type
+	 * of site given in the setup), else up to date.
 	 *
 	 * @param	DoliDB	$db		Database handler
 	 * @return	array<int,string>	Id of version => situation (self::SITUATION_xxx)
@@ -1320,6 +1349,37 @@ class SiteVersion extends CommonObject
 		self::loadVersions($db);
 
 		return self::$cacheSituations;
+	}
+
+	/**
+	 * Return the current version of a type of site given in the setup of the module (format x.y.z)
+	 *
+	 * @param	int		$fk_typesite	Id of the type of site
+	 * @return	string					Current version, '' if not set (or not in the format x.y.z)
+	 */
+	public static function getCurrentVersion($fk_typesite)
+	{
+		$current = trim(getDolGlobalString('NSSUIVIPROD_CURRENT_VERSION_'.((int) $fk_typesite)));
+
+		return (preg_match('/^\d+\.\d+\.\d+$/', $current) ? $current : '');
+	}
+
+	/**
+	 * Return true if a version is the latest version of its type of site (see getLatestByType())
+	 *
+	 * @param	DoliDB								$db				Database handler
+	 * @param	array{id:int,ref:string}|null		$latest			Latest version of the type of site
+	 * @param	int									$fk_siteversion	Id of the version
+	 * @return	bool
+	 */
+	public static function isLatest($db, $latest, $fk_siteversion)
+	{
+		self::loadVersions($db);
+		if (empty($latest) || empty($fk_siteversion) || !isset(self::$cacheRefs[(int) $fk_siteversion])) {
+			return false;
+		}
+
+		return ((int) $latest['id'] == (int) $fk_siteversion || self::compareVersions(self::$cacheRefs[(int) $fk_siteversion], $latest['ref']) == 0);
 	}
 
 	/**

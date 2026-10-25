@@ -170,7 +170,6 @@ Permission17279121 = Access to the setup of the module
 # Import of the plugins from the JSON file of the external modules (module nslistmodexterne)
 #
 PluginJsonImport = Import the external modules
-PluginJsonImportHelp = JSON file of the external modules produced by the module "List of external modules" (nslistmodexterne) of the Dolibarr of the site. A plugin already recorded is updated (same technical name, or else same label), otherwise it is created. It is linked to the plugin product whose reference or label matches the technical name or the label of the module.
 PluginJsonWhere = File to download from the setup of the module "List of external modules" of the Dolibarr of this URL:
 PluginJsonImportFile = Import the file
 PluginJsonImportLocal = Import the file of this instance
@@ -181,8 +180,6 @@ ErrorPluginJsonInvalid = The file is not a JSON file of the external modules (mo
 PluginUrlHelp = URL of the site (production, development, sandbox… instance) on which the plugin is installed
 PluginNoUrl = No URL
 PluginNoUrlYet = Add a URL to the site: a tab of plugins is created for each URL.
-WarningPluginJsonOtherUrl = The address of the instance of the file (%s) does not match this URL (%s): check that it is the right file.
-ErrorPluginJsonNoUrl = No URL of the site matches the address of the instance of the file (%s): add this URL to the site, then import again.
 ErrorPluginJsonSeveralUrls = Several URLs of the site match the address of the instance of the file (%s).
 PluginJsonAdded = %s plugins added by this import
 PluginJsonMissing = %s plugins absent from the file (kept, to delete if needed)
@@ -260,3 +257,25 @@ NssuiviprodEvtFieldChange = %s: %s → %s
 NssuiviprodEvtFieldChanged = %s: modified
 NssuiviprodEvtEmpty = (empty)
 ErrorNumberingModuleNotSetup = The numbering model of %s is not set up or returns no reference (setup of the module Site tracking)
+
+#
+# Import of the JSON file at the level of the URLs, current version, Dolistore
+#
+UrlJsonImportHelp = JSON file of the external modules produced by the module "List of external modules" (nslistmodexterne) of a Dolibarr. In one operation: the URL of the instance of the file is found in the site (or created), its installed version becomes the exact Dolibarr version of the file (created in the referential if needed), its date of last check becomes today, and its plugins are added or updated.
+UrlJsonNewUrl = If the URL does not exist, it is created with:
+UrlJsonUrlCreated = URL created: %s
+UrlJsonUrlUpdated = URL updated: %s
+UrlJsonVersionCreated = Version %s created in the versions referential
+UrlJsonVersionSet = installed version %s
+ErrorUrlJsonNoInstance = The file does not give the address of its Dolibarr instance: generate it again with an up to date version of the module "List of external modules".
+NssuiviprodTitleDolistore = Dolistore
+NSSUIVIPROD_DOLISTORE_AUTO = Check the Dolistore versions automatically after the import of the external modules
+NSSUIVIPROD_DOLISTORE_AUTO_Tooltip = After the import of the JSON file of a URL, the versions of its plugins are searched on the Dolistore, then the plugins are linked to the products. The import is then longer. Otherwise, use the button "Check the Dolistore versions" of the tab of the URL.
+NssuiviprodCurrentVersions = Current version by type of site
+NssuiviprodCurrentVersion = Current version
+NssuiviprodCurrentVersionHelp = Format x.y.z (e.g. 23.0.3). A lower installed version is not up to date (update available). Empty: the most recent enabled version of the referential is the reference. Obsolete versions or versions with a security issue are still reported as such.
+ErrorCurrentVersionFormat = %s: current version "%s" not saved, expected format x.y.z (e.g. 23.0.3)
+ConfirmDeleteUrlWithPlugins = Delete this URL and its %s plugins?
+UrlPluginsDeleted = %s plugins deleted with the URL
+WarningUrlJsonNoVersion = Version %s of the file not saved: the site has no type of site.
+PluginSortHelp = Click to sort (a second click reverses the order)
