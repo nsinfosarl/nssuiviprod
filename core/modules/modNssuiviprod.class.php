@@ -66,7 +66,7 @@ class modNssuiviprod extends DolibarrModules
 			'css' => array('/nssuiviprod/css/nssuiviprod.css.php'),
 			/* BEGIN MODULEBUILDER HOOKSCONTEXTS */
 			'hooks' => array(
-				'data' => array('rowinterface'),	// Drag and drop of the URLs of a site (permission in core/ajax/row.php)
+				'data' => array('rowinterface', 'globalcard', 'productcard', 'productservicelist'),	// Drag and drop of the URLs of a site (permission in core/ajax/row.php), tab of the product card shown only when the product is linked to a plugin, column of the plugins in the list of the products
 				'entity' => '0',
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */
@@ -93,6 +93,8 @@ class modNssuiviprod extends DolibarrModules
 			0 => array('NSSUIVIPROD_SITE_ADDON', 'chaine', 'mod_site_standard', 'Numbering model of the sites', 0, 'current', 0),
 			1 => array('NSSUIVIPROD_DOLISTORE_AUTO', 'chaine', '1', 'Check of the Dolistore versions after the import of the JSON file of the external modules', 0, 'current', 0),
 			2 => array('NSSUIVIPROD_DOLISTORE_API_URL', 'chaine', 'https://www.dolistore.com/api/', 'URL of the API of the Dolistore', 0, 'current', 0),
+			3 => array('NSSUIVIPROD_SHOW_ON_SERVICES', 'chaine', '1', 'Plugins of the sites shown on the services (tab of the card, column of the list)', 0, 'current', 0),
+			4 => array('NSSUIVIPROD_SHOW_ON_PRODUCTS', 'chaine', '0', 'Plugins of the sites shown on the products (tab of the card, column of the list)', 0, 'current', 0),
 		);
 
 		if (!isModEnabled("nssuiviprod")) {
@@ -104,7 +106,9 @@ class modNssuiviprod extends DolibarrModules
 		/* BEGIN MODULEBUILDER TABS */
 		$this->tabs = array();
 		// Tab on the thirdparty card: sites of the thirdparty (with the number of sites)
-		$this->tabs[] = array('data' => "thirdparty:+nssuiviprod:NssuiviprodTabThirdparty,Site,/nssuiviprod/class/site.class.php,countForThirdparty:nssuiviprod@nssuiviprod:isModEnabled('nssuiviprod') && \$user->hasRight('nssuiviprod', 'site', 'read'):/nssuiviprod/site_thirdparty.php?socid=__ID__");
+		$this->tabs[] = array('data' => "thirdparty:+nssuiviprod:NssuiviprodTabThirdparty,Site,/nssuiviprod/class/site.class.php,countForThirdparty:nssuiviprod@nssuiviprod:isModEnabled('nssuiviprod') && \$user->hasRight('nssuiviprod', 'site', 'read'):/nssuiviprod/core/site/site_thirdparty.php?socid=__ID__");
+		// Tab on the product card: plugins of the sites linked to the product (hidden by the hook completeTabsHead when there is none)
+		$this->tabs[] = array('data' => "product:+nssuiviprodplugins:NssuiviprodTabProduct,SitePlugin,/nssuiviprod/class/siteplugin.class.php,countForProduct:nssuiviprod@nssuiviprod:isModEnabled('nssuiviprod') && \$user->hasRight('nssuiviprod', 'site', 'read'):/nssuiviprod/core/plugin/siteplugin_product.php?id=__ID__");
 		/* END MODULEBUILDER TABS */
 
 		/* BEGIN MODULEBUILDER DICTIONARIES */
@@ -128,7 +132,23 @@ class modNssuiviprod extends DolibarrModules
 		/* END MODULEBUILDER WIDGETS */
 
 		/* BEGIN MODULEBUILDER CRON */
-		$this->cronjobs = array();
+		$this->cronjobs = array(
+			// Daily check of the current version of the installed modules on the Dolistore (once a day at most for a module)
+			0 => array(
+				'label' => 'NssuiviprodCronDolistore',
+				'jobtype' => 'method',
+				'class' => '/nssuiviprod/class/pluginmodule.class.php',
+				'objectname' => 'PluginModule',
+				'method' => 'cronCheckDolistore',
+				'parameters' => '',
+				'comment' => 'Check of the versions of the installed modules on the Dolistore',
+				'frequency' => 1,
+				'unitfrequency' => 86400,
+				'status' => 1,
+				'test' => 'isModEnabled("nssuiviprod")',
+				'priority' => 50,
+			),
+		);
 		/* END MODULEBUILDER CRON */
 
 		// Permissions provided by this module
@@ -187,7 +207,7 @@ class modNssuiviprod extends DolibarrModules
 			'prefix' => img_picto('', 'fa-globe', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #3879B2"'),
 			'mainmenu' => 'nssuiviprod',
 			'leftmenu' => 'site',
-			'url' => '/nssuiviprod/site_list.php',
+			'url' => '/nssuiviprod/core/site/site_list.php',
 			'langs' => 'nssuiviprod@nssuiviprod',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("nssuiviprod")',
@@ -203,7 +223,7 @@ class modNssuiviprod extends DolibarrModules
 			'prefix' => img_picto('', 'fa-plus-circle', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #3879B2"'),
 			'mainmenu' => 'nssuiviprod',
 			'leftmenu' => 'nssuiviprod_site_new',
-			'url' => '/nssuiviprod/site_card.php?action=create',
+			'url' => '/nssuiviprod/core/site/site_card.php?action=create',
 			'langs' => 'nssuiviprod@nssuiviprod',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("nssuiviprod")',
@@ -219,7 +239,7 @@ class modNssuiviprod extends DolibarrModules
 			'prefix' => img_picto('', 'fa-list', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #3879B2"'),
 			'mainmenu' => 'nssuiviprod',
 			'leftmenu' => 'nssuiviprod_site_list',
-			'url' => '/nssuiviprod/site_list.php',
+			'url' => '/nssuiviprod/core/site/site_list.php',
 			'langs' => 'nssuiviprod@nssuiviprod',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("nssuiviprod")',
@@ -235,7 +255,7 @@ class modNssuiviprod extends DolibarrModules
 			'prefix' => img_picto('', 'fa-exclamation-triangle', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #3879B2"'),
 			'mainmenu' => 'nssuiviprod',
 			'leftmenu' => 'nssuiviprod_site_toupdate',
-			'url' => '/nssuiviprod/siteurl_list.php?search_situation=toupdate',
+			'url' => '/nssuiviprod/core/url/siteurl_list.php?search_situation=toupdate',
 			'langs' => 'nssuiviprod@nssuiviprod',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("nssuiviprod")',
@@ -253,7 +273,7 @@ class modNssuiviprod extends DolibarrModules
 			'prefix' => img_picto('', 'fa-link', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #22A7D8"'),
 			'mainmenu' => 'nssuiviprod',
 			'leftmenu' => 'siteurl',
-			'url' => '/nssuiviprod/siteurl_list.php',
+			'url' => '/nssuiviprod/core/url/siteurl_list.php',
 			'langs' => 'nssuiviprod@nssuiviprod',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("nssuiviprod")',
@@ -271,7 +291,7 @@ class modNssuiviprod extends DolibarrModules
 			'prefix' => img_picto('', 'fa-puzzle-piece', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #5A2D82"'),
 			'mainmenu' => 'nssuiviprod',
 			'leftmenu' => 'siteplugin',
-			'url' => '/nssuiviprod/siteplugin_list.php',
+			'url' => '/nssuiviprod/core/plugin/siteplugin_list.php',
 			'langs' => 'nssuiviprod@nssuiviprod',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("nssuiviprod")',
@@ -281,6 +301,24 @@ class modNssuiviprod extends DolibarrModules
 			'object' => 'SitePlugin'
 		);
 		/* END MODULEBUILDER LEFTMENU SITEPLUGIN */
+		/* BEGIN MODULEBUILDER LEFTMENU PLUGINMODULE */
+		$this->menu[$r++] = array(
+			'fk_menu' => 'fk_mainmenu=nssuiviprod',
+			'type' => 'left',
+			'titre' => 'PluginModules',
+			'prefix' => img_picto('', 'fa-cube', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #5A2D82"'),
+			'mainmenu' => 'nssuiviprod',
+			'leftmenu' => 'pluginmodule',
+			'url' => '/nssuiviprod/core/module/pluginmodule_list.php',
+			'langs' => 'nssuiviprod@nssuiviprod',
+			'position' => 1000 + $r,
+			'enabled' => 'isModEnabled("nssuiviprod")',
+			'perms' => '$user->hasRight("nssuiviprod", "site", "read")',
+			'target' => '',
+			'user' => 0,	// Internal users only
+			'object' => 'PluginModule'
+		);
+		/* END MODULEBUILDER LEFTMENU PLUGINMODULE */
 		/* BEGIN MODULEBUILDER LEFTMENU SETUP */
 		$this->menu[$r++] = array(
 			'fk_menu' => 'fk_mainmenu=nssuiviprod',
@@ -344,6 +382,35 @@ class modNssuiviprod extends DolibarrModules
 		$result = $this->_load_tables('/nssuiviprod/sql/');
 		if ($result < 0) {
 			return -1; // Do not activate module if error 'not allowed' returned when loading module SQL queries (the _load_table run sql with run_sql with the error allowed parameter set to 'default')
+		}
+
+		// 23.0.2: pages moved into core/<element>/ (site, url, plugin): the former pages of the root of the module, left by
+		// the extraction of the new archive over the former version, are deleted (nothing done if they are already gone)
+		$moduledir = dirname(__DIR__, 2);
+		foreach (array('site', 'siteurl', 'siteplugin') as $element) {
+			foreach (array('agenda', 'card', 'contact', 'document', 'list', 'note', 'thirdparty') as $page) {
+				$formerpage = $moduledir.'/'.$element.'_'.$page.'.php';
+				if (is_file($formerpage) && !@unlink($formerpage)) {
+					dol_syslog(get_class($this).'::init former page '.$formerpage.' can not be deleted: delete it by hand', LOG_WARNING);
+				}
+			}
+		}
+
+		// 23.0.2: plugins recorded before the table of the modules linked to their module (nothing done if already done)
+		// Run only once: version of the database of the module saved when the migration is done (NSSUIVIPROD_DB_VERSION)
+		dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+		if (version_compare(getDolGlobalString('NSSUIVIPROD_DB_VERSION', '0'), PluginModule::DB_VERSION, '<')) {
+			$migration = PluginModule::migrateFromPlugins($this->db);
+			if (!is_array($migration)) {
+				$this->error = 'Migration of the plugins to the modules: '.$this->db->lasterror();
+				dol_syslog(get_class($this).'::init '.$this->error, LOG_ERR);
+				return -1;
+			}
+			if ($migration['created'] || $migration['linked']) {
+				dol_syslog(get_class($this).'::init migration of the plugins: '.$migration['created'].' modules created, '.$migration['linked'].' plugins linked', LOG_NOTICE);
+			}
+			require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+			dolibarr_set_const($this->db, 'NSSUIVIPROD_DB_VERSION', PluginModule::DB_VERSION, 'chaine', 0, 'Version of the database of the module (migrations done)', 0);
 		}
 
 		// Permissions

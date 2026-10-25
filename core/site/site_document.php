@@ -18,9 +18,9 @@
  */
 
 /**
- *  \file       siteplugin_document.php
+ *  \file       htdocs/custom/nssuiviprod/core/site/site_document.php
  *  \ingroup    nssuiviprod
- *  \brief      Tab for documents linked to SitePlugin
+ *  \brief      Tab for documents linked to Site
  */
 
 // General defined Options
@@ -75,6 +75,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -90,8 +96,8 @@ include_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/images.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
-dol_include_once('/nssuiviprod/class/siteplugin.class.php');
-dol_include_once('/nssuiviprod/lib/nssuiviprod_siteplugin.lib.php');
+dol_include_once('/nssuiviprod/class/site.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
 
 // Load translation files required by the page
 $langs->loadLangs(array("nssuiviprod@nssuiviprod", "companies", "other", "mails"));
@@ -121,7 +127,7 @@ if (!$sortfield) {
 //if (! $sortfield) $sortfield="position_name";
 
 // Initialize a technical objects
-$object = new SitePlugin($db);
+$object = new Site($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($object->element.'document', 'globalcard')); // Note that conf->hooks_modules contains array
@@ -134,7 +140,7 @@ include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be 'inclu
 
 $upload_dir = null;
 if ($id > 0 || !empty($ref)) {
-	$upload_dir = $conf->nssuiviprod->multidir_output[$object->entity ? $object->entity : $conf->entity]."/siteplugin/".get_exdir(0, 0, 0, 1, $object);
+	$upload_dir = $conf->nssuiviprod->multidir_output[$object->entity ? $object->entity : $conf->entity]."/site/".get_exdir(0, 0, 0, 1, $object);
 }
 
 // Permissions
@@ -181,16 +187,16 @@ $form = new Form($db);
 
 // Header
 // ------
-$title = $langs->trans("SitePlugin")." - ".$langs->trans("Files");
+$title = $langs->trans("Site")." - ".$langs->trans("Files");
 //$title = $object->ref." - ".$langs->trans("Files");
 $help_url = '';
 //Example $help_url='EN:Module_Third_Parties|FR:Module_Tiers|ES:Empresas';
 llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-card_document');
 
 // Show tabs
-$head = sitepluginPrepareHead($object);
+$head = sitePrepareHead($object);
 
-print dol_get_fiche_head($head, 'document', $langs->trans("SitePlugin"), -1, $object->picto);
+print dol_get_fiche_head($head, 'document', $langs->trans("Site"), -1, $object->picto);
 
 
 // Build file list
@@ -202,7 +208,7 @@ foreach ($filearray as $key => $file) {
 
 // Object card
 // ------------------------------------------------------------
-$linkback = '<a href="'.dol_buildpath('/nssuiviprod/siteplugin_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/site/site_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
 
 $morehtmlref = '<div class="refidno">';
 /*
@@ -229,6 +235,7 @@ if (isModEnabled('project')) {
 */
 $morehtmlref .= '</div>';
 
+$morehtmlref = nssuiviprodSiteBannerRef($object);	// Label, thirdparty and type of the site
 dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
 
 print '<div class="fichecenter">';
@@ -240,7 +247,7 @@ print '<table class="border centpercent tableforfield">';
 print '<tr><td class="titlefield">'.$langs->trans("NbOfAttachedFiles").'</td><td colspan="3">'.count($filearray).'</td></tr>';
 
 // Total size
-print '<tr><td>'.$langs->trans("TotalSizeOfAttachedFiles").'</td><td colspan="3">'.$totalsize.' '.$langs->trans("bytes").'</td></tr>';
+print '<tr><td>'.$langs->trans("TotalSizeOfAttachedFiles").'</td><td colspan="3">'.$totalsize.' '.$langs->trans("Bytes").'</td></tr>';
 
 print '</table>';
 
@@ -250,8 +257,8 @@ print dol_get_fiche_end();
 
 $modulepart = 'nssuiviprod';
 $param = '&id='.$object->id;
-//$relativepathwithnofile='siteplugin/' . dol_sanitizeFileName($object->id).'/';
-$relativepathwithnofile = 'siteplugin/'.dol_sanitizeFileName($object->ref).'/';
+//$relativepathwithnofile='site/' . dol_sanitizeFileName($object->id).'/';
+$relativepathwithnofile = 'site/'.dol_sanitizeFileName($object->ref).'/';
 
 include DOL_DOCUMENT_ROOT.'/core/tpl/document_actions_post_headers.tpl.php';
 

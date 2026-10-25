@@ -874,7 +874,7 @@ class SiteUrl extends CommonObject
 			$label = implode($this->getTooltipContentArray($params));
 		}
 
-		$baseurl = dol_buildpath('/nssuiviprod/siteurl_card.php', 1);
+		$baseurl = dol_buildpath('/nssuiviprod/core/url/siteurl_card.php', 1);
 		$query = ['id' => $this->id];
 		if ($option !== 'nolink') {
 			// Add param to save lastsearch_values or not

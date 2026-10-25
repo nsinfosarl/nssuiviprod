@@ -1,13 +1,18 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 23.0.2 - 25/10/2026
+- Modules uniques : table des modules (identité et informations Dolistore une seule fois), plugins des URL reliés à leur module ; menu, liste et fiche « Modules » ; migration automatique des plugins existants, lancée une seule fois
+- Dolistore : un module interrogé au plus une fois par jour (réglage pour en autoriser plusieurs, boutons toujours actifs) ; tâche planifiée quotidienne ; adresse de l'API réglable (corrige « Le Dolistore ne répond pas » en Dolibarr 20)
+- Services et produits : onglet et colonne « Installations sur les sites » (clic vers le site), un réglage pour les services (activé) et un pour les produits (désactivé)
+- Liste des sites : colonnes URL et Version installée (couleur selon la version actuelle)
+- Tableau des plugins de la fiche site : colonnes à ajouter parmi les champs du plugin et du module
+- Pages rangées dans core/site, core/url, core/plugin, core/module ; avertissement si la base n'est pas à jour (désactiver puis réactiver le module, voir le README)
+
 ## 23.0.1 - 25/10/2026
-- Import du fichier JSON des modules externes remonté au niveau des URL de la fiche site, en une opération : URL de l'instance du fichier retrouvée (ou créée, avec le type d'URL et l'environnement choisis dans le formulaire), version installée = version exacte de Dolibarr du fichier, date du dernier contrôle = date du jour, plugins de l'URL ajoutés ou mis à jour ; les onglets de plugins gardent leurs boutons et, pour une URL déjà importée, le lien vers les réglages de nslistmodexterne
-- Référentiel des versions remplacé par la version actuelle de chaque type de site, dans les réglages (format x.y.z) : la version installée d'une URL devient un simple numéro (saisi, ou repris du fichier JSON à l'import), à jour s'il est égal ou supérieur à la version actuelle, mise à jour disponible s'il est inférieur ; situations « Version non renseignée » et « Pas de version actuelle » ; menus, liste et fiches des versions, droits du référentiel et bouton « + » de création d'une version retirés ; numéro de l'ancienne version de chaque URL repris à la réactivation du module (la table des versions reste en base)
-- Réglages : option « Vérifier les versions Dolistore automatiquement après l'import des modules externes » (activée par défaut)
-- Suppression d'une URL : ses plugins sont supprimés avec elle (nombre indiqué dans la confirmation, un seul événement de l'agenda)
-- Tableau des plugins de la fiche site : cases à cocher en première colonne, description du module sous le nom du plugin (recherche comprise), colonne Éditeur avec sa recherche, tri par clic sur les en-têtes (location, produit, plugin, éditeur, version, version Dolistore ; versions comparées nombre par nombre) ; recherche par version corrigée (« 23.0 » n'était plus retrouvé) ; largeur des colonnes adaptée (nom du plugin à la ligne, description sur une ligne terminée par « … » si elle est trop longue, texte complet au survol ; colonnes produit et éditeur plus étroites)
-- Liste des plugins : colonne Éditeur affichée par défaut
-- Dolistore : « Le Dolistore ne répond pas » corrigé en Dolibarr 20 (adresse de l'ancien service PrestaShop imposée par Dolibarr remplacée par la nouvelle API) ; réglage « Adresse de l'API du Dolistore » (https://www.dolistore.com/api/ par défaut)
+- Import du fichier JSON au niveau des URL, en une opération : URL créée ou mise à jour (version exacte, date du contrôle), plugins ajoutés ou mis à jour, vérification Dolistore ensuite (option)
+- Version actuelle de chaque type de site dans les réglages (x.y.z), à la place du référentiel des versions
+- Suppression d'une URL avec ses plugins
+- Tableau des plugins : cases à gauche, description, colonne Éditeur, tri des colonnes, largeurs adaptées
 
 ## 23.0.0 - 24/10/2026
 - Version initiale « Suivi des sites » (Site tracking), module NS INFO n° 172791 construit avec ModuleBuilder ; Dolibarr 20 à 24, PHP 7.4 à 8.3, framework NSINFO 23.8.0 minimum (backport des fonctions de Dolibarr 23, vérifié à l'activation) ; multisociété, attributs supplémentaires sur tous les objets

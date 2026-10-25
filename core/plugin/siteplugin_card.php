@@ -18,10 +18,11 @@
  */
 
 /**
- *    \file       siteurl_card.php
+ *    \file       htdocs/custom/nssuiviprod/core/plugin/siteplugin_card.php
  *    \ingroup    nssuiviprod
- *    \brief      Page to create/edit/view siteurl
+ *    \brief      Page to create/edit/view siteplugin
  */
+
 
 // General defined Options
 //if (! defined('CSRFCHECK_WITH_TOKEN'))     define('CSRFCHECK_WITH_TOKEN', '1');					// Force use of CSRF protection with tokens even for GET
@@ -43,6 +44,7 @@
 //if (! defined('NOSESSION'))                define('NOSESSION', '1');						// On CLI mode, no need to use web sessions
 //if (! defined('NOSTYLECHECK'))             define('NOSTYLECHECK', '1');					// Do not check style html tag into posted data
 //if (! defined('NOTOKENRENEWAL'))           define('NOTOKENRENEWAL', '1');					// Do not roll the Anti CSRF token (used if MAIN_SECURITY_CSRF_WITH_TOKEN is on)
+
 
 // Load Dolibarr environment
 $res = 0;
@@ -75,6 +77,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -90,8 +98,8 @@ if (!$res) {
 include_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 include_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
 include_once DOL_DOCUMENT_ROOT.'/core/class/html.formprojet.class.php';
-dol_include_once('/nssuiviprod/class/siteurl.class.php');
-dol_include_once('/nssuiviprod/lib/nssuiviprod_siteurl.lib.php');
+dol_include_once('/nssuiviprod/class/siteplugin.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_siteplugin.lib.php');
 
 // Load translation files required by the page
 $langs->loadLangs(array("nssuiviprod@nssuiviprod", "other"));
@@ -112,7 +120,7 @@ $optioncss = GETPOST('optioncss', 'aZ'); // Option for the css output (always ''
 $dol_openinpopup = GETPOST('dol_openinpopup', 'aZ09');
 
 // Initialize a technical objects
-$object = new SiteUrl($db);
+$object = new SitePlugin($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($object->element.'card', 'globalcard')); // Note that conf->hooks_modules contains array
@@ -120,6 +128,7 @@ $soc = null;
 
 // Fetch optionals attributes and labels
 $extrafields->fetch_name_optionals_label($object->table_element);
+
 
 $search_array_options = $extrafields->getOptionalsFromPost($object->table_element, '', 'search_');
 
@@ -156,7 +165,7 @@ if ($enablepermissioncheck) {
 	$permissiondellink = 1;
 }
 
-$upload_dir = $conf->nssuiviprod->multidir_output[isset($object->entity) ? $object->entity : 1].'/siteurl';
+$upload_dir = $conf->nssuiviprod->multidir_output[isset($object->entity) ? $object->entity : 1].'/siteplugin';
 
 // Security check (enable at least one, the most restrictive one)
 if ($user->socid > 0) {
@@ -174,6 +183,7 @@ if (!$permissiontoread) {
 
 $error = 0;
 
+
 /*
  * Actions
  */
@@ -185,14 +195,14 @@ if ($reshook < 0) {
 }
 
 if (empty($reshook)) {
-	$backurlforlist = dol_buildpath('/nssuiviprod/siteurl_list.php', 1);
+	$backurlforlist = dol_buildpath('/nssuiviprod/core/plugin/siteplugin_list.php', 1);
 
 	if (empty($backtopage) || ($cancel && empty($id))) {
 		if (empty($backtopage) || ($cancel && strpos($backtopage, '__ID__'))) {
 			if (empty($id) && (($action != 'add' && $action != 'create') || $cancel)) {
 				$backtopage = $backurlforlist;
 			} else {
-				$backtopage = dol_buildpath('/nssuiviprod/siteurl_card.php', 1).'?id='.((!empty($id) && $id > 0) ? $id : '__ID__');
+				$backtopage = dol_buildpath('/nssuiviprod/core/plugin/siteplugin_card.php', 1).'?id='.((!empty($id) && $id > 0) ? $id : '__ID__');
 			}
 		}
 	}
@@ -225,11 +235,13 @@ if (empty($reshook)) {
 	*/
 
 	// Actions to send emails
-	$triggersendname = 'NSSUIVIPROD_SITEURL_SENTBYMAIL';
-	$autocopy = 'MAIN_MAIL_AUTOCOPY_SITEURL_TO';
-	$trackid = 'siteurl'.$object->id;
+	$triggersendname = 'NSSUIVIPROD_SITEPLUGIN_SENTBYMAIL';
+	$autocopy = 'MAIN_MAIL_AUTOCOPY_SITEPLUGIN_TO';
+	$trackid = 'siteplugin'.$object->id;
 	include DOL_DOCUMENT_ROOT.'/core/actions_sendmails.inc.php';
 }
+
+
 
 /*
  * View
@@ -238,10 +250,10 @@ if (empty($reshook)) {
 $form = new Form($db);
 $formfile = new FormFile($db);
 
-$title = $langs->trans("SiteUrl")." - ".$langs->trans('Card');
+$title = $langs->trans("SitePlugin")." - ".$langs->trans('Card');
 //$title = $object->ref." - ".$langs->trans('Card');
 if ($action == 'create') {
-	$title = $langs->trans("NewObject", $langs->transnoentitiesnoconv("SiteUrl"));
+	$title = $langs->trans("NewObject", $langs->transnoentitiesnoconv("SitePlugin"));
 }
 $help_url = '';
 
@@ -261,6 +273,7 @@ llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-car
 // 	});
 // });
 // </script>';
+
 
 // Part to create
 if ($action == 'create') {
@@ -283,19 +296,9 @@ if ($action == 'create') {
 		print '<input type="hidden" name="dol_openinpopup" value="'.$dol_openinpopup.'">';
 	}
 
-	print dol_get_fiche_head(array(), '');
-
-	print '<table class="border centpercent tableforfieldcreate">'."\n";
-
-	// Common attributes
-	include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_add.tpl.php';
-
-	// Other attributes
-	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_add.tpl.php';
-
-	print '</table>'."\n";
-
-	print dol_get_fiche_end();
+	// Fields in tabs
+	$fieldgroupsmode = 'add';
+	include dirname(__DIR__).'/tpl/siteplugin_fieldgroups.tpl.php';
 
 	print $form->buttonsSaveCancel("Create");
 
@@ -306,7 +309,7 @@ if ($action == 'create') {
 
 // Part to edit record
 if (($id || $ref) && $action == 'edit') {
-	print load_fiche_titre($langs->trans("SiteUrl"), '', $object->picto);
+	print load_fiche_titre($langs->trans("SitePlugin"), '', $object->picto);
 
 	print '<form method="POST" action="'.dolBuildUrl($_SERVER["PHP_SELF"]).'">';
 	print '<input type="hidden" name="token" value="'.newToken().'">';
@@ -319,19 +322,9 @@ if (($id || $ref) && $action == 'edit') {
 		print '<input type="hidden" name="backtopageforcancel" value="'.$backtopageforcancel.'">';
 	}
 
-	print dol_get_fiche_head();
-
-	print '<table class="border centpercent tableforfieldedit">'."\n";
-
-	// Common attributes
-	include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_edit.tpl.php';
-
-	// Other attributes
-	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_edit.tpl.php';
-
-	print '</table>';
-
-	print dol_get_fiche_end();
+	// Fields in tabs
+	$fieldgroupsmode = 'edit';
+	include dirname(__DIR__).'/tpl/siteplugin_fieldgroups.tpl.php';
 
 	print $form->buttonsSaveCancel();
 
@@ -340,16 +333,15 @@ if (($id || $ref) && $action == 'edit') {
 
 // Part to show record
 if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'create'))) {
-	$head = siteurlPrepareHead($object);
+	$head = sitepluginPrepareHead($object);
 
-	print dol_get_fiche_head($head, 'card', $langs->trans("SiteUrl"), -1, $object->picto, 0, '', '', 0, '', 1);
+	print dol_get_fiche_head($head, 'card', $langs->trans("SitePlugin"), -1, $object->picto, 0, '', '', 0, '', 1);
 
 	$formconfirm = '';
 
 	// Confirmation to delete (using preloaded confirm popup)
 	if ($action == 'delete' || ($conf->use_javascript_ajax && empty($conf->dol_use_jmobile))) {
-		// Its plugins are deleted with the URL
-		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans('DeleteSiteUrl'), ($object->countPlugins() > 0 ? $langs->trans('ConfirmDeleteUrlWithPlugins', $object->countPlugins()) : $langs->trans('ConfirmDeleteObject')), 'confirm_delete', '', 0, 'action-delete');
+		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans('DeleteSitePlugin'), $langs->trans('ConfirmDeleteObject'), 'confirm_delete', '', 0, 'action-delete');
 	}
 	// Confirmation to delete line
 	if ($action == 'deleteline') {
@@ -398,9 +390,10 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	// Print form confirm
 	print $formconfirm;
 
+
 	// Object card
 	// ------------------------------------------------------------
-	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/siteurl_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/plugin/siteplugin_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
 
 	$morehtmlref = '<div class="refidno">';
 	/*
@@ -436,29 +429,21 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	*/
 	$morehtmlref .= '</div>';
 
+
 	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
 
+
 	print '<div class="fichecenter">';
-	print '<div class="fichehalfleft">';
 	print '<div class="underbanner clearboth"></div>';
-	print '<table class="border centpercent tableforfield">'."\n";
-
-	// Common attributes
-	//$keyforbreak='fieldkeytoswitchonsecondcolumn';	// We change column just before this field
-	//unset($object->fields['fk_project']);				// Hide field already shown in banner
-	//unset($object->fields['fk_soc']);					// Hide field already shown in banner
-	include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_view.tpl.php';
-
-	// Other attributes. Fields from hook formObjectOptions and Extrafields.
-	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_view.tpl.php';
-
-	print '</table>';
-	print '</div>';
+	// Fields in tabs
+	$fieldgroupsmode = 'view';
+	include dirname(__DIR__).'/tpl/siteplugin_fieldgroups.tpl.php';
 	print '</div>';
 
 	print '<div class="clearboth"></div>';
 
 	print dol_get_fiche_end();
+
 
 	/*
 	 * Lines
@@ -513,6 +498,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print "</form>\n";
 	}
 
+
 	// Buttons for actions
 
 	if ($action != 'presend' && $action != 'editline') {
@@ -532,6 +518,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			// Modify
 			print dolGetButtonAction('', $langs->trans('Modify'), 'default', $_SERVER["PHP_SELF"].'?id='.$object->id.'&action=edit&token='.newToken(), '', $permissiontoadd);
 
+
 			// Clone
 			if ($permissiontoadd) {
 				print dolGetButtonAction('', $langs->trans('ToClone'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.(!empty($object->socid) ? '&socid='.$object->socid : '').'&action=clone&token='.newToken(), '', $permissiontoadd);
@@ -550,7 +537,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				if ($object->status == $object::STATUS_VALIDATED) {
 					print dolGetButtonAction('', $langs->trans('Cancel'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=close&token='.newToken(), '', $permissiontoadd);
 				} else {
-					print dolGetButtonAction('', $langs->trans('Re-Open'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=reopen&token='.newToken(), '', $permissiontoadd);
+					print dolGetButtonAction('', $langs->trans('ReOpen'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=reopen&token='.newToken(), '', $permissiontoadd);
 				}
 			}
 			*/
@@ -567,6 +554,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		}
 		print '</div>'."\n";
 	}
+
 
 	// Select mail models is same action as presend
 	if (GETPOST('modelselected')) {
@@ -587,11 +575,11 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			$urlsource = $_SERVER["PHP_SELF"]."?id=".$object->id;
 			$genallowed = $permissiontoread; // If you can read, you can build the PDF to read content
 			$delallowed = $permissiontoadd; // If you can create/edit, you can remove a file on card
-			print $formfile->showdocuments('nssuiviprod:SiteUrl', $object->element.'/'.$objref, $filedir, $urlsource, $genallowed, $delallowed, $object->model_pdf, 1, 0, 0, 28, 0, '', '', '', $langs->defaultlang);
+			print $formfile->showdocuments('nssuiviprod:SitePlugin', $object->element.'/'.$objref, $filedir, $urlsource, $genallowed, $delallowed, $object->model_pdf, 1, 0, 0, 28, 0, '', '', '', $langs->defaultlang);
 		}
 
 		// Show links to link elements
-		$tmparray = $form->showLinkToObjectBlock($object, array(), array('siteurl'), 1);
+		$tmparray = $form->showLinkToObjectBlock($object, array(), array('siteplugin'), 1);
 		if (is_array($tmparray)) {
 			$linktoelem = $tmparray['linktoelem'];
 			$htmltoenteralink = $tmparray['htmltoenteralink'];
@@ -606,7 +594,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 		$MAXEVENT = 10;
 
-		$morehtmlcenter = dolGetButtonTitle($langs->trans('SeeAll'), '', 'fa fa-bars imgforviewmode', dol_buildpath('/nssuiviprod/siteurl_agenda.php', 1).'?id='.$object->id);
+		$morehtmlcenter = dolGetButtonTitle($langs->trans('SeeAll'), '', 'fa fa-bars imgforviewmode', dol_buildpath('/nssuiviprod/core/plugin/siteplugin_agenda.php', 1).'?id='.$object->id);
 
 		$includeeventlist = 0;
 
@@ -626,10 +614,10 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	}
 
 	// Presend form
-	$modelmail = 'siteurl';
+	$modelmail = 'siteplugin';
 	$defaulttopic = 'InformationMessage';
 	$diroutput = $conf->nssuiviprod->dir_output;
-	$trackid = 'siteurl'.$object->id;
+	$trackid = 'siteplugin'.$object->id;
 
 	include DOL_DOCUMENT_ROOT.'/core/tpl/card_presend.tpl.php';
 }

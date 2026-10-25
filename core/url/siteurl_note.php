@@ -18,9 +18,9 @@
  */
 
 /**
- *  \file       site_note.php
+ *  \file       htdocs/custom/nssuiviprod/core/url/siteurl_note.php
  *  \ingroup    nssuiviprod
- *  \brief      Tab for notes on Site
+ *  \brief      Tab for notes on SiteUrl
  */
 
 
@@ -76,6 +76,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -87,8 +93,8 @@ if (!$res) {
  * @var Translate $langs
  * @var User $user
  */
-dol_include_once('/nssuiviprod/class/site.class.php');
-dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
+dol_include_once('/nssuiviprod/class/siteurl.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_siteurl.lib.php');
 
 // Load translation files required by the page
 $langs->loadLangs(array("nssuiviprod@nssuiviprod", "companies"));
@@ -101,7 +107,7 @@ $cancel     = GETPOST('cancel');
 $backtopage = GETPOST('backtopage', 'alpha');
 
 // Initialize a technical objects
-$object = new Site($db);
+$object = new SiteUrl($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($object->element.'note', 'globalcard')); // Note that conf->hooks_modules contains array
@@ -161,7 +167,7 @@ if (empty($reshook)) {
 
 $form = new Form($db);
 
-$title = $langs->trans('Site').' - '.$langs->trans("Notes");
+$title = $langs->trans('SiteUrl').' - '.$langs->trans("Notes");
 //$title = $object->ref." - ".$langs->trans("Notes");
 $help_url = '';
 //$help_url='EN:Customers_Orders|FR:Commandes_Clients|ES:Pedidos de clientes';
@@ -171,13 +177,13 @@ llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-car
 if ($id > 0 || !empty($ref)) {
 	$object->fetch_thirdparty();
 
-	$head = sitePrepareHead($object);
+	$head = siteurlPrepareHead($object);
 
-	print dol_get_fiche_head($head, 'note', $langs->trans("Site"), -1, $object->picto);
+	print dol_get_fiche_head($head, 'note', $langs->trans("SiteUrl"), -1, $object->picto);
 
 	// Object card
 	// ------------------------------------------------------------
-	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/site_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/url/siteurl_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
 
 	$morehtmlref = '<div class="refidno">';
 	/*
@@ -219,7 +225,6 @@ if ($id > 0 || !empty($ref)) {
 	$morehtmlref .= '</div>';
 
 
-	$morehtmlref = nssuiviprodSiteBannerRef($object);	// Label, thirdparty and type of the site
 	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
 
 

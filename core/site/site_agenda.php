@@ -18,9 +18,9 @@
  */
 
 /**
- *  \file       siteurl_agenda.php
+ *  \file       htdocs/custom/nssuiviprod/core/site/site_agenda.php
  *  \ingroup    nssuiviprod
- *  \brief      Tab of events on SiteUrl
+ *  \brief      Tab of events on Site
  */
 
 //if (! defined('NOREQUIREDB'))              define('NOREQUIREDB', '1');				// Do not create database handler $db
@@ -73,6 +73,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -87,8 +93,8 @@ if (!$res) {
 include_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-dol_include_once('/nssuiviprod/class/siteurl.class.php');
-dol_include_once('/nssuiviprod/lib/nssuiviprod_siteurl.lib.php');
+dol_include_once('/nssuiviprod/class/site.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
 
 // Load translation files required by the page
 $langs->loadLangs(array("nssuiviprod@nssuiviprod", "other"));
@@ -135,7 +141,7 @@ if (!$sortorder) {
 }
 
 // Initialize a technical objects
-$object = new SiteUrl($db);
+$object = new Site($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($object->element.'agenda', 'globalcard')); // Note that conf->hooks_modules contains array
@@ -208,7 +214,7 @@ if (empty($reshook)) {
 $form = new Form($db);
 
 if ($object->id > 0) {
-	$title = $langs->trans("SiteUrl")." - ".$langs->trans('Agenda');
+	$title = $langs->trans("Site")." - ".$langs->trans('Agenda');
 	//$title = $object->ref." - ".$langs->trans("Agenda");
 	$help_url = 'EN:Module_Agenda_En|DE:Modul_Terminplanung';
 
@@ -217,14 +223,14 @@ if ($object->id > 0) {
 	if (isModEnabled('notification')) {
 		$langs->load("mails");
 	}
-	$head = siteurlPrepareHead($object);
+	$head = sitePrepareHead($object);
 
 
-	print dol_get_fiche_head($head, 'agenda', $langs->trans("SiteUrl"), -1, $object->picto);
+	print dol_get_fiche_head($head, 'agenda', $langs->trans("Site"), -1, $object->picto);
 
 	// Object card
 	// ------------------------------------------------------------
-	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/siteurl_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/site/site_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
 
 	$morehtmlref = '<div class="refidno">';
 	/*
@@ -266,6 +272,7 @@ if ($object->id > 0) {
 	$morehtmlref .= '</div>';
 
 
+	$morehtmlref = nssuiviprodSiteBannerRef($object);	// Label, thirdparty and type of the site
 	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
 
 	print '<div class="fichecenter">';
@@ -352,10 +359,10 @@ if ($object->id > 0) {
 			$param .= '&dateevent_endday='.GETPOSTINT('dateevent_endday');
 		}
 
-		// Try to know count of actioncomm from cache
-		$nbEvent = 0;
+		// Number of events linked to the site
+		$nbEvent = nssuiviprodSiteCountEvents($object);
 		//require_once DOL_DOCUMENT_ROOT.'/core/lib/memory.lib.php';
-		//$cachekey = 'count_events_siteurl_'.$object->id;
+		//$cachekey = 'count_events_site_'.$object->id;
 		//$nbEvent = dol_getcache($cachekey);
 		$titlelist = $langs->trans("Actions").(is_numeric($nbEvent) ? '<span class="opacitymedium colorblack paddingleft">('.$nbEvent.')</span>' : '');
 		if (!empty($conf->dol_optimize_smallscreen)) {

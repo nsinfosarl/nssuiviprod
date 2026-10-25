@@ -109,4 +109,196 @@ class ActionsNssuiviprod
 
 		return 0;
 	}
+
+	/**
+	 * Tabs of the cards: the tab of the plugins of the product card is shown only when the product is linked to a plugin
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters (object, mode, head by reference)
+	 * @param	CommonObject		$object			Object of the card
+	 * @param	string				$action			Action
+	 * @param	HookManager			$hookmanager	Hook manager
+	 * @return	int									0 (tabs completed in $parameters['head'])
+	 */
+	public function completeTabsHead(&$parameters, &$object, &$action, $hookmanager)
+	{
+		$this->resprints = '';	// Not reset by the hook manager between two calls
+		if (empty($parameters['mode']) || $parameters['mode'] != 'add' || !is_object($object) || $object->element != 'product' || !isModEnabled('nssuiviprod') || empty($parameters['head']) || !is_array($parameters['head'])) {
+			return 0;
+		}
+		foreach ($parameters['head'] as $key => $tab) {
+			if (isset($tab[2]) && $tab[2] == 'nssuiviprodplugins') {
+				dol_include_once('/nssuiviprod/class/siteplugin.class.php');
+				$tmpplugin = new SitePlugin($this->db);
+				// Services (products if the setup says so) linked to at least one plugin only
+				if (!SitePlugin::isShownOnProductType((int) $object->type) || $tmpplugin->countForProduct((int) $object->id) <= 0) {
+					unset($parameters['head'][$key]);
+					$parameters['head'] = array_values($parameters['head']);
+				}
+				break;
+			}
+		}
+
+		return 0;
+	}
+
+	/**
+	 * List of the products and services: column of the plugins of the sites (picto of the module with the number of
+	 * installations), hidden by the selector of the columns of the list (Dolibarr 21+)
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters
+	 * @return	bool							true if the column is shown on this list
+	 */
+	private function showProductPluginColumn($parameters)
+	{
+		global $user;
+
+		if (empty($parameters['currentcontext']) || $parameters['currentcontext'] != 'productservicelist' || !isModEnabled('nssuiviprod') || !$user->hasRight('nssuiviprod', 'site', 'read')) {
+			return false;
+		}
+		// List of the products only or of the services only (type of the list): column shown if this type is shown
+		dol_include_once('/nssuiviprod/class/siteplugin.class.php');
+		$listtype = GETPOST('type', 'alpha');
+		if ($listtype !== '' && in_array($listtype, array('0', '1')) && !SitePlugin::isShownOnProductType($listtype)) {
+			return false;
+		}
+		if (!SitePlugin::isShownOnProductType(0) && !SitePlugin::isShownOnProductType(1)) {
+			return false;
+		}
+		// Column selector of the list (completeArrayFields does not exist with Dolibarr 20: column always shown)
+		return (!isset($parameters['arrayfields']['nssuiviprod_nbplugins']) || !empty($parameters['arrayfields']['nssuiviprod_nbplugins']['checked']));
+	}
+
+	/**
+	 * List of the products and services: column of the plugins in the selector of the columns
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters (arrayfields by reference)
+	 * @param	CommonObject		$object			Object
+	 * @param	string				$action			Action
+	 * @param	HookManager			$hookmanager	Hook manager
+	 * @return	int									0
+	 */
+	public function completeArrayFields($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->resprints = '';	// Not reset by the hook manager between two calls
+		global $user, $langs;
+
+		if (!empty($parameters['currentcontext']) && $parameters['currentcontext'] == 'productservicelist' && isModEnabled('nssuiviprod') && $user->hasRight('nssuiviprod', 'site', 'read') && isset($parameters['arrayfields']) && is_array($parameters['arrayfields'])) {
+			$langs->load("nssuiviprod@nssuiviprod");
+			$parameters['arrayfields']['nssuiviprod_nbplugins'] = array('label' => $langs->trans('NssuiviprodTabProduct'), 'checked' => '1', 'enabled' => '1', 'position' => 1000);
+		}
+
+		return 0;
+	}
+
+	/**
+	 * List of the products and services: number of plugins of the sites of each product
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters
+	 * @param	CommonObject		$object			Object
+	 * @param	string				$action			Action
+	 * @param	HookManager			$hookmanager	Hook manager
+	 * @return	int									0
+	 */
+	public function printFieldListSelect($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->resprints = '';	// Not reset by the hook manager between two calls
+		global $user;
+
+		if (!empty($parameters['currentcontext']) && $parameters['currentcontext'] == 'productservicelist' && isModEnabled('nssuiviprod') && $user->hasRight('nssuiviprod', 'site', 'read')) {
+			// Number of plugins, of sites, and the first plugin (site and URL of the link when there is one site only)
+			$from = " FROM ".$this->db->prefix()."nssuiviprod_siteplugin as nssp WHERE nssp.fk_product = p.rowid AND nssp.entity IN (".getEntity('siteplugin').")";
+			$this->resprints = ", (SELECT COUNT(nssp.rowid)".$from.") as nssuiviprod_nbplugins";
+			$this->resprints .= ", (SELECT COUNT(DISTINCT nssp.fk_site)".$from.") as nssuiviprod_nbsites";
+			$this->resprints .= ", (SELECT MIN(nssp.fk_site)".$from.") as nssuiviprod_fk_site";
+			$this->resprints .= ", (SELECT MIN(nssp.fk_siteurl)".$from.") as nssuiviprod_fk_siteurl";
+		}
+
+		return 0;
+	}
+
+	/**
+	 * List of the products and services: empty search field of the column of the plugins
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters
+	 * @param	CommonObject		$object			Object
+	 * @param	string				$action			Action
+	 * @param	HookManager			$hookmanager	Hook manager
+	 * @return	int									0
+	 */
+	public function printFieldListOption($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->resprints = '';	// Not reset by the hook manager between two calls
+		if ($this->showProductPluginColumn($parameters)) {
+			$this->resprints = '<td class="liste_titre"></td>';
+		}
+
+		return 0;
+	}
+
+	/**
+	 * List of the products and services: title of the column of the plugins (picto of the module)
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters
+	 * @param	CommonObject		$object			Object
+	 * @param	string				$action			Action
+	 * @param	HookManager			$hookmanager	Hook manager
+	 * @return	int									0
+	 */
+	public function printFieldListTitle($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->resprints = '';	// Not reset by the hook manager between two calls
+		global $langs;
+
+		if ($this->showProductPluginColumn($parameters)) {
+			$langs->load("nssuiviprod@nssuiviprod");
+			$this->resprints = '<th class="liste_titre center" title="'.dol_escape_htmltag($langs->trans('NssuiviprodTabProduct')).'">'.img_picto('', 'nssuiviprod@nssuiviprod', 'class="valignmiddle" style="height: 16px"').'</th>';
+			if (isset($parameters['totalarray']['nbfield'])) {
+				$parameters['totalarray']['nbfield']++;
+			}
+		}
+
+		return 0;
+	}
+
+	/**
+	 * List of the products and services: picto of the module with the number of plugins, linked to the tab of the product
+	 *
+	 * @param	array<string,mixed>	$parameters		Hook parameters (obj: line of the list)
+	 * @param	CommonObject		$object			Object
+	 * @param	string				$action			Action
+	 * @param	HookManager			$hookmanager	Hook manager
+	 * @return	int									0
+	 */
+	public function printFieldListValue($parameters, &$object, &$action, $hookmanager)
+	{
+		$this->resprints = '';	// Not reset by the hook manager between two calls
+		global $langs;
+
+		if ($this->showProductPluginColumn($parameters)) {
+			$obj = (isset($parameters['obj']) ? $parameters['obj'] : null);
+			$nb = (is_object($obj) && isset($obj->nssuiviprod_nbplugins) ? (int) $obj->nssuiviprod_nbplugins : 0);
+			if (is_object($obj) && isset($obj->fk_product_type) && !SitePlugin::isShownOnProductType((int) $obj->fk_product_type)) {
+				$nb = 0;	// Type of product not shown (setup): empty cell
+			}
+			$out = '<td class="center nowraponall">';
+			if ($nb > 0 && !empty($obj->rowid)) {
+				$langs->load("nssuiviprod@nssuiviprod");
+				// One site: its card, on the tab of the plugins of the URL; several sites: tab of the product listing them
+				if ((int) $obj->nssuiviprod_nbsites == 1) {
+					$link = dol_buildpath('/nssuiviprod/core/site/site_card.php', 1).'?id='.((int) $obj->nssuiviprod_fk_site).((int) $obj->nssuiviprod_nbplugins == 1 ? '&pluginurl='.((int) $obj->nssuiviprod_fk_siteurl) : '').'#siteplugins';
+				} else {
+					$link = dol_buildpath('/nssuiviprod/core/plugin/siteplugin_product.php', 1).'?id='.((int) $obj->rowid);
+				}
+				$out .= '<a href="'.$link.'" title="'.dol_escape_htmltag($langs->trans('NssuiviprodTabProduct').' : '.$nb).'">';
+				$out .= img_picto('', 'nssuiviprod@nssuiviprod', 'class="valignmiddle" style="height: 16px"').'<span class="badge marginleftonlyshort">'.$nb.'</span></a>';
+			}
+			$out .= '</td>';
+			$this->resprints = $out;
+			if (empty($parameters['i']) && isset($parameters['totalarray']['nbfield'])) {
+				$parameters['totalarray']['nbfield']++;
+			}
+		}
+
+		return 0;
+	}
 }

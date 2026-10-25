@@ -256,3 +256,28 @@ ConfirmDeleteUrlWithPlugins = Supprimer cette URL et ses %s plugins ?
 UrlPluginsDeleted = %s plugins supprimés avec l'URL
 PluginSortHelp = Cliquer pour trier (un second clic inverse l'ordre)
 SituationNoCurrent = Pas de version actuelle
+
+# Modules (catalogue unique des modules installés sur les URL)
+PluginModule = Module
+PluginModules = Modules
+PluginModuleHelp = Module du plugin : son identité (nom technique, éditeur, description…) et ses informations Dolistore sont enregistrées une seule fois pour tous les sites
+PluginModuleNameHelp = Nom technique du module Dolibarr (unique), repris du fichier JSON des modules externes, ou libellé d'un plugin saisi à la main
+PluginModuleInstallations = Installations
+ShowPluginModule = Voir le module
+DeletePluginModule = Supprimer le module
+ErrorPluginModuleUsed = Ce module est installé sur %s URL : supprimer d'abord ses plugins.
+PluginDolistoreAlreadyToday = %s module(s) déjà vérifié(s) aujourd'hui, non redemandé(s).
+NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY = Autoriser plusieurs vérifications Dolistore par jour pour un module
+NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY_Tooltip = Désactivé : un module déjà vérifié aujourd'hui n'est pas redemandé au Dolistore (après l'import, par la tâche planifiée). Les boutons « Vérifier les versions Dolistore » interrogent toujours le Dolistore.
+NssuiviprodTabProduct = Installations sur les sites
+NssuiviprodCronDolistore = Vérification quotidienne des versions Dolistore des modules installés
+NssuiviprodCronDolistoreResult = %s modules installés : %s trouvés sur le Dolistore, %s non trouvés, %s non redemandés (déjà vérifiés aujourd'hui ou non trouvés récemment).
+
+# Clés des modèles ModuleBuilder
+ClassNotFound = Classe introuvable
+CodeTooltipHelp = Code unique de l'entrée (lettres, chiffres, sans espace)
+NssuiviprodDatabaseNotUpToDate = La base de données du module n'est pas à jour (version %s attendue) : désactiver puis réactiver le module pour lancer la migration.
+NSSUIVIPROD_SHOW_ON_SERVICES = Services : afficher les installations sur les sites
+NSSUIVIPROD_SHOW_ON_SERVICES_Tooltip = Colonne « Installations sur les sites » de la liste des services et onglet de la fiche service (services reliés à au moins un plugin). Désactivé : pas de colonne ni d'onglet sur les services. Activé par défaut.
+NSSUIVIPROD_SHOW_ON_PRODUCTS = Produits : afficher les installations sur les sites
+NSSUIVIPROD_SHOW_ON_PRODUCTS_Tooltip = Colonne « Installations sur les sites » de la liste des produits et onglet de la fiche produit (produits reliés à au moins un plugin). Désactivé : pas de colonne ni d'onglet sur les produits. Désactivé par défaut.

@@ -18,7 +18,7 @@
  */
 
 /**
- *    \file       site_card.php
+ *    \file       htdocs/custom/nssuiviprod/core/site/site_card.php
  *    \ingroup    nssuiviprod
  *    \brief      Page to create/edit/view site
  */
@@ -76,6 +76,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 }
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
 }
 if (!$res) {
 	die("Include of main fails");
@@ -191,14 +197,14 @@ if ($reshook < 0) {
 }
 
 if (empty($reshook)) {
-	$backurlforlist = dol_buildpath('/nssuiviprod/site_list.php', 1);
+	$backurlforlist = dol_buildpath('/nssuiviprod/core/site/site_list.php', 1);
 
 	if (empty($backtopage) || ($cancel && empty($id))) {
 		if (empty($backtopage) || ($cancel && strpos($backtopage, '__ID__'))) {
 			if (empty($id) && (($action != 'add' && $action != 'create') || $cancel)) {
 				$backtopage = $backurlforlist;
 			} else {
-				$backtopage = dol_buildpath('/nssuiviprod/site_card.php', 1).'?id='.((!empty($id) && $id > 0) ? $id : '__ID__');
+				$backtopage = dol_buildpath('/nssuiviprod/core/site/site_card.php', 1).'?id='.((!empty($id) && $id > 0) ? $id : '__ID__');
 			}
 		}
 	}
@@ -236,6 +242,14 @@ if (empty($reshook)) {
 
 	// URL of the tab of the plugins (actions of the tab; set by the import of the JSON file for the actions chained after it)
 	$pluginurlparam = GETPOSTINT('pluginurl');
+	// Columns added to the table of the plugins (selector of the fields of its title, saved for the user): the form of the
+	// table is submitted by the selector, so no other action
+	if (GETPOST('formfilteraction', 'alphanohtml') == 'listafterchangingselectedfields' && $object->id > 0) {
+		include_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
+		dol_set_user_param($db, $conf, $user, array('MAIN_SELECTEDFIELDS_nssuiviprodsiteplugins' => (string) GETPOST('selectedfields', 'alphanohtml')));
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('plugin_fk_siteurl').'#siteplugins');
+		exit;
+	}
 	// Label of the URL of the tab of the plugins (detail of the events of the agenda)
 	$eventurllabel = '';
 	if (GETPOSTINT('pluginurl') > 0 || GETPOSTINT('plugin_fk_siteurl') > 0) {
@@ -326,6 +340,11 @@ if (empty($reshook)) {
 	// the URL of the instance of the file is found in the site (or created), its installed version becomes the exact
 	// Dolibarr version of the file (created in the referential if needed), its date of last check is today, and its
 	// plugins are added or updated. File uploaded, or file of this instance (copy written by nslistmodexterne)
+	if ($action == 'importurl' && $permissiontoadd && $object->id > 0 && !PluginModule::isDatabaseUpToDate($db)) {
+		// Database not migrated (module not activated again after its update): the import would create duplicates
+		setEventMessages($langs->trans('NssuiviprodDatabaseNotUpToDate', PluginModule::DB_VERSION), null, 'errors');
+		$action = '';
+	}
 	if ($action == 'importurl' && $permissiontoadd && $object->id > 0) {
 		$fk_siteurl = 0;
 		$content = false;
@@ -446,9 +465,15 @@ if (empty($reshook)) {
 		$nbfound = 0;
 		$nbnotfound = 0;
 		$nberror = 0;
+		$nbtoday = 0;
 		foreach ((is_array($plugins) ? $plugins : array()) as $tmpplugin) {
-			$res = $tmpplugin->checkDolistoreVersion($user, 7);	// Modules not found during the last 7 days: not searched again
-			if ($res == 2) {
+			// Button of the tab: the Dolistore is always asked; after an import: once a day at most for a module (unless the
+			// setup allows several checks a day), modules not found during the last 7 days not searched again
+			$res = $tmpplugin->checkDolistoreVersion($user, 7, empty($afterimport) ? 1 : 0);
+			if ($res == 3) {
+				$nbtoday++;
+				continue;
+			} elseif ($res == 2) {
 				continue;
 			} elseif ($res > 0) {
 				$nbfound++;
@@ -460,6 +485,9 @@ if (empty($reshook)) {
 			}
 		}
 		$details = array($langs->transnoentitiesnoconv('PluginDolistoreChecked', $nbfound, $nbnotfound));
+		if ($nbtoday) {
+			$details[] = $langs->transnoentitiesnoconv('PluginDolistoreAlreadyToday', $nbtoday);
+		}
 		foreach ((is_array($plugins) ? $plugins : array()) as $tmpplugin) {
 			if ((string) $tmpplugin->version !== '' && (string) $tmpplugin->dolistore_version !== '' && version_compare((string) $tmpplugin->dolistore_version, (string) $tmpplugin->version, '>')) {
 				$details[] = $langs->transnoentitiesnoconv('NssuiviprodEvtNewerVersion', $tmpplugin->ref, $tmpplugin->version, $tmpplugin->dolistore_version);
@@ -469,7 +497,7 @@ if (empty($reshook)) {
 			$details[] = $errormsg;
 		}
 		nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtDolistoreChecked', $eventurllabel), $details);
-		setEventMessages($langs->trans('PluginDolistoreChecked', $nbfound, $nbnotfound), null, 'mesgs');
+		setEventMessages($langs->trans('PluginDolistoreChecked', $nbfound, $nbnotfound).($nbtoday ? ' '.$langs->trans('PluginDolistoreAlreadyToday', $nbtoday) : ''), null, 'mesgs');
 		if ($nberror) {
 			setEventMessages($errormsg, null, 'errors');
 		}
@@ -617,6 +645,8 @@ if ($action == 'create') {
 $help_url = '';
 
 llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-card');
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+print PluginModule::getDatabaseWarning($db);	// Database of the module not up to date: deactivate and activate the module
 
 // Example : Adding jquery code
 // print '<script type="text/javascript">
@@ -796,7 +826,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 	// Object card
 	// ------------------------------------------------------------
-	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/site_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/site/site_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
 
 	$morehtmlref = '<div class="refidno">';
 	/*
@@ -986,7 +1016,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<td class="wordbreak">'.dolPrintHTML((string) $tmpurl->complement).'</td>';	// Advanced text: entered on the card of the URL
 		print '<td class="right nowraponall">';
 		if ($permissiontoadd) {
-			print '<a class="editfielda reposition marginrightonly" href="'.dol_buildpath('/nssuiviprod/siteurl_card.php', 1).'?id='.$tmpurl->id.'&action=edit&token='.newToken().'&backtopage='.$backtocard.'">'.img_edit().'</a>';
+			print '<a class="editfielda reposition marginrightonly" href="'.dol_buildpath('/nssuiviprod/core/url/siteurl_card.php', 1).'?id='.$tmpurl->id.'&action=edit&token='.newToken().'&backtopage='.$backtocard.'">'.img_edit().'</a>';
 			print '<a class="reposition" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=deleteurl&childid='.$tmpurl->id.'&token='.newToken().'">'.img_delete().'</a>';
 		}
 		print '</td>';
@@ -1055,6 +1085,35 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	$withproduct = (isModEnabled('product') || isModEnabled('service'));
 	$backtocard = urlencode($_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurl.'#siteplugins');
 	$urlparam = '?id='.$object->id.'&pluginurl='.$pluginurl;
+	// Columns that can be added to the table of the plugins: the fields of the plugins not already shown (selector of the
+	// fields of the title of the table, choice saved for the user)
+	$pluginarrayfields = array();
+	$pluginfixedfields = array('rowid', 'entity', 'fk_site', 'fk_siteurl', 'fk_product', 'rental', 'label', 'publisher', 'version', 'dolistore_version');
+	foreach ($siteplugin->fields as $key => $val) {
+		if (empty($val['visible']) || in_array($key, $pluginfixedfields) || !dol_eval((string) $val['enabled'], 1)) {
+			continue;
+		}
+		$pluginarrayfields['p.'.$key] = array('label' => $val['label'], 'checked' => '0', 'enabled' => '1', 'position' => $val['position']);
+	}
+	// Fields of the module of the plugins (identity and Dolistore information, read on the module)
+	$tmpmodule = new PluginModule($db);
+	foreach ($tmpmodule->fields as $key => $val) {
+		if (empty($val['visible']) || in_array((int) $val['visible'], array(-2, 0)) || in_array($key, array('rowid', 'entity', 'label', 'publisher', 'dolistore_version'))) {
+			continue;
+		}
+		$pluginarrayfields['m.'.$key] = array('label' => $val['label'], 'checked' => '0', 'enabled' => '1', 'position' => 200 + (int) $val['position']);
+	}
+	$pluginarrayfields = dol_sort_array($pluginarrayfields, 'position');
+	$pluginselectedfields = $form->multiSelectArrayWithCheckbox('selectedfields', $pluginarrayfields, 'nssuiviprodsiteplugins');	// Also sets the checked columns
+	// Columns chosen: field of the plugin (p.) or of its module (m.), with its definition
+	$pluginextrafields = array();
+	foreach ($pluginarrayfields as $key => $val) {
+		if (!empty($val['checked'])) {
+			$field = substr($key, 2);
+			$frommodule = (substr($key, 0, 2) == 'm.');
+			$pluginextrafields[] = array('field' => $field, 'module' => $frommodule, 'id' => ($frommodule ? 'm_' : 'p_').$field, 'val' => ($frommodule ? $tmpmodule->fields[$field] : $siteplugin->fields[$field]));
+		}
+	}
 
 	print '<br><a name="siteplugins"></a>';
 	print load_fiche_titre($langs->trans('SitePlugins'), '', $siteplugin->picto);
@@ -1139,6 +1198,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].$urlparam.'">';
 		print '<input type="hidden" name="token" value="'.newToken().'">';
 		print '<input type="hidden" name="action" value="addplugin">';
+		print '<input type="hidden" name="formfilteraction" value="list">';
 		print '<input type="hidden" name="plugin_fk_siteurl" value="'.$pluginurl.'">';
 		print '<div class="div-table-responsive-no-min">';
 		print '<table class="noborder centpercent" id="tablesiteplugins">';
@@ -1153,8 +1213,13 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<td class="pluginsort cursorpointer" data-sort="publisher" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginPublisher').'</td>';
 		print '<td class="center">'.img_picto('Dolistore', 'fa-store', 'class="opacitymedium"').'</td>';
 		print '<td class="center">'.img_picto($langs->trans('PluginPublisherUrl'), 'fa-globe', 'class="opacitymedium"').'</td>';
-		print '<td class="pluginsort cursorpointer" data-sort="version" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginVersion').'</td><td class="pluginsort cursorpointer" data-sort="dolistore" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginDolistoreVersion').'</td><td></td></tr>';
-		$nbcols = ($withproduct ? 10 : 9);
+		print '<td class="pluginsort cursorpointer" data-sort="version" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginVersion').'</td><td class="pluginsort cursorpointer" data-sort="dolistore" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans('PluginDolistoreVersion').'</td>';
+		foreach ($pluginextrafields as $extra) {
+			$val = $extra['val'];
+			print '<td class="pluginsort cursorpointer'.(!empty($val['csslist']) && preg_match('/\b(center|right)\b/', $val['csslist'], $reg) ? ' '.$reg[1] : '').'" data-sort="f_'.$extra['id'].'" title="'.dol_escape_htmltag($langs->trans('PluginSortHelp')).'">'.$langs->trans($val['label']).'</td>';
+		}
+		print '<td class="right">'.$pluginselectedfields.'</td></tr>';
+		$nbcols = ($withproduct ? 10 : 9) + count($pluginextrafields);
 		// Search fields (filter of the rows in the page)
 		if (!empty($plugins)) {
 			print '<tr class="liste_titre_filter">';
@@ -1169,6 +1234,9 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			print '<td class="liste_titre"></td><td class="liste_titre"></td>';
 			print '<td class="liste_titre"><input type="text" class="flat maxwidth75 pluginfilter" data-filter="version"></td>';
 			print '<td class="liste_titre center">'.$form->selectarray('search_plugin_newer', array('1' => $langs->trans('PluginDolistoreNewer')), '', 1, 0, 0, 'data-filter="newer"', 0, 0, 0, '', 'maxwidth100 pluginfilter').'</td>';
+			foreach ($pluginextrafields as $extra) {
+				print '<td class="liste_titre"><input type="text" class="flat maxwidth75 pluginfilter" data-filter="f_'.$extra['id'].'"></td>';
+			}
 			print '<td class="liste_titre"></td>';
 			print '</tr>';
 		}
@@ -1186,7 +1254,25 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				$productref = $tmpproduct->ref.' '.$tmpproduct->label;
 			}
 			$newer = ((string) $tmpplugin->dolistore_version !== '' && (string) $tmpplugin->version !== '' && version_compare((string) $tmpplugin->dolistore_version, (string) $tmpplugin->version, '>'));
-			print '<tr class="oddeven pluginrow" data-rental="'.((int) $tmpplugin->rental).'" data-product="'.dol_escape_htmltag(dol_strtolower($productref)).'" data-label="'.dol_escape_htmltag(dol_strtolower($tmpplugin->label.' '.$tmpplugin->module_name.' '.$tmpplugin->module_description)).'" data-publisher="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->publisher)).'" data-name="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->label)).'" data-dolistore="'.dol_escape_htmltag((string) $tmpplugin->dolistore_version).'" data-version="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->version)).'" data-newer="'.($newer ? 1 : 0).'">';
+			// Added columns: value shown, and its text for the search and the sort (dates: sortable value)
+			$extracells = '';
+			$extradata = '';
+			$tmppluginmodule = $tmpplugin->getModule();
+			foreach ($pluginextrafields as $extra) {
+				$val = $extra['val'];
+				$key = $extra['field'];
+				$source = ($extra['module'] ? $tmppluginmodule : $tmpplugin);
+				$output = ($source ? ($extra['module'] && $key == 'ref' ? $source->getNomUrl(1) : $source->showOutputField($val, $key, (string) $source->$key, '')) : '');
+				$text = trim(dol_string_nohtmltag((string) $output, 1));
+				$sorttext = (in_array($val['type'], array('date', 'datetime', 'timestamp')) ? ($source ? (string) $source->$key : '') : dol_strtolower($text));
+				$css = (!empty($val['csslist']) ? $val['csslist'] : (in_array($val['type'], array('text', 'html')) ? 'tdoverflowmax150' : 'nowraponall'));
+				if (in_array($val['type'], array('text', 'html')) && !preg_match('/tdoverflow/', $css)) {
+					$css .= ' tdoverflowmax150';
+				}
+				$extracells .= '<td class="'.dol_escape_htmltag($css).'"'.(preg_match('/tdoverflow/', $css) ? ' title="'.dol_escape_htmltag($text).'"' : '').'>'.$output.'</td>';
+				$extradata .= ' data-f_'.$extra['id'].'="'.dol_escape_htmltag($sorttext).'"';
+			}
+			print '<tr class="oddeven pluginrow" data-rental="'.((int) $tmpplugin->rental).'" data-product="'.dol_escape_htmltag(dol_strtolower($productref)).'" data-label="'.dol_escape_htmltag(dol_strtolower($tmpplugin->label.' '.$tmpplugin->module_name.' '.$tmpplugin->module_description)).'" data-publisher="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->publisher)).'" data-name="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->label)).'" data-dolistore="'.dol_escape_htmltag((string) $tmpplugin->dolistore_version).'" data-version="'.dol_escape_htmltag(dol_strtolower((string) $tmpplugin->version)).'" data-newer="'.($newer ? 1 : 0).'"'.$extradata.'>';
 			print '<td class="center">'.($permissiontoadd ? '<input type="checkbox" class="checkforselectplugin" name="toselect[]" value="'.((int) $tmpplugin->id).'">' : '').'</td>';
 			// Rental state: colored icon, a click switches it
 			print '<td class="center width25">';
@@ -1213,9 +1299,10 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			print '<td class="center width25">'.$tmpplugin->getLinks('publisher').'</td>';
 			print '<td class="nowraponall">'.dol_escape_htmltag($tmpplugin->version).'</td>';
 			print '<td class="nowraponall">'.$tmpplugin->getDolistoreVersionBadge().'</td>';
+			print $extracells;
 			print '<td class="right nowraponall">';
 			if ($permissiontoadd) {
-				print '<a class="editfielda reposition marginrightonly" href="'.dol_buildpath('/nssuiviprod/siteplugin_card.php', 1).'?id='.$tmpplugin->id.'&action=edit&token='.newToken().'&backtopage='.$backtocard.'">'.img_edit().'</a>';
+				print '<a class="editfielda reposition marginrightonly" href="'.dol_buildpath('/nssuiviprod/core/plugin/siteplugin_card.php', 1).'?id='.$tmpplugin->id.'&action=edit&token='.newToken().'&backtopage='.$backtocard.'">'.img_edit().'</a>';
 				print '<a class="reposition" href="'.$_SERVER['PHP_SELF'].$urlparam.'&action=deleteplugin&childid='.$tmpplugin->id.'&token='.newToken().'">'.img_delete().'</a>';
 			}
 			print '</td>';
@@ -1255,6 +1342,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			print '<td></td><td></td>';
 			print '<td><input type="text" name="plugin_version" class="maxwidth100" value="'.dol_escape_htmltag(GETPOST('plugin_version', 'alphanohtml')).'"></td>';
 			print '<td></td>';
+			print str_repeat('<td></td>', count($pluginextrafields));
 			print '<td class="right"><input type="submit" class="button small" value="'.$langs->trans('Add').'"></td>';
 			print '</tr>';
 		}
@@ -1281,7 +1369,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '	jQuery("#tablesiteplugins .pluginfilter").on("keyup change", filterPlugins);'."\n";
 		// Sort of the rows of the plugins: text, or version numbers compared number by number
 		print '	function comparePluginValues(a, b, key) {'."\n";
-		print '		if (key === "version" || key === "dolistore") {'."\n";
+		print '		if (key === "version" || key === "dolistore" || /^f_[pm]_(nb_|module_number|dolistore_id)/.test(key)) {'."\n";
 		print '			var pa = String(a).split(/[^0-9]+/), pb = String(b).split(/[^0-9]+/);'."\n";
 		print '			if (a === "") { return (b === "" ? 0 : 1); } if (b === "") { return -1; }'."\n";
 		print '			for (var i = 0; i < Math.max(pa.length, pb.length); i++) { var na = parseInt(pa[i] || 0, 10), nb = parseInt(pb[i] || 0, 10); if (na !== nb) { return na - nb; } }'."\n";
@@ -1349,7 +1437,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 				if ($object->status == $object::STATUS_VALIDATED) {
 					print dolGetButtonAction('', $langs->trans('Cancel'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=close&token='.newToken(), '', $permissiontoadd);
 				} else {
-					print dolGetButtonAction('', $langs->trans('Re-Open'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=reopen&token='.newToken(), '', $permissiontoadd);
+					print dolGetButtonAction('', $langs->trans('ReOpen'), 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=reopen&token='.newToken(), '', $permissiontoadd);
 				}
 			}
 			*/
@@ -1406,7 +1494,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 		$MAXEVENT = 10;
 
-		$morehtmlcenter = dolGetButtonTitle($langs->trans('SeeAll'), '', 'fa fa-bars imgforviewmode', dol_buildpath('/nssuiviprod/site_agenda.php', 1).'?id='.$object->id);
+		$morehtmlcenter = dolGetButtonTitle($langs->trans('SeeAll'), '', 'fa fa-bars imgforviewmode', dol_buildpath('/nssuiviprod/core/site/site_agenda.php', 1).'?id='.$object->id);
 
 		// Latest events of the site (button to add an event linked to the site and its thirdparty provided by showactions())
 		$includeeventlist = (isModEnabled('agenda') && ($user->hasRight('agenda', 'myactions', 'read') || $user->hasRight('agenda', 'allactions', 'read'))) ? 1 : 0;

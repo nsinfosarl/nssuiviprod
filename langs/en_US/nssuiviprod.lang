@@ -255,3 +255,28 @@ ConfirmDeleteUrlWithPlugins = Delete this URL and its %s plugins?
 UrlPluginsDeleted = %s plugins deleted with the URL
 PluginSortHelp = Click to sort (a second click reverses the order)
 SituationNoCurrent = No current version
+
+# Modules (single catalogue of the modules installed on the URLs)
+PluginModule = Module
+PluginModules = Modules
+PluginModuleHelp = Module of the plugin: its identity (technical name, publisher, description...) and its Dolistore information are recorded once for all the sites
+PluginModuleNameHelp = Technical name of the Dolibarr module (unique), taken from the JSON file of the external modules, or label of a plugin entered by hand
+PluginModuleInstallations = Installations
+ShowPluginModule = Show module
+DeletePluginModule = Delete module
+ErrorPluginModuleUsed = This module is installed on %s URL: delete its plugins first.
+PluginDolistoreAlreadyToday = %s module(s) already checked today, not asked again.
+NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY = Allow several Dolistore checks a day for a module
+NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY_Tooltip = Disabled: a module already checked today is not asked again to the Dolistore (after the import, by the scheduled job). The buttons "Check the Dolistore versions" always ask the Dolistore.
+NssuiviprodTabProduct = Installations on the sites
+NssuiviprodCronDolistore = Daily check of the Dolistore versions of the installed modules
+NssuiviprodCronDolistoreResult = %s installed modules: %s found on the Dolistore, %s not found, %s not asked again (already checked today or not found recently).
+
+# Keys of the ModuleBuilder templates
+ClassNotFound = Class not found
+CodeTooltipHelp = Unique code of the entry (letters, digits, no space)
+NssuiviprodDatabaseNotUpToDate = The database of the module is not up to date (version %s expected): deactivate then activate the module to run the migration.
+NSSUIVIPROD_SHOW_ON_SERVICES = Services: show the installations on the sites
+NSSUIVIPROD_SHOW_ON_SERVICES_Tooltip = Column "Installations on the sites" of the list of the services and tab of the service card (services linked to at least one plugin). Disabled: no column nor tab on the services. Enabled by default.
+NSSUIVIPROD_SHOW_ON_PRODUCTS = Products: show the installations on the sites
+NSSUIVIPROD_SHOW_ON_PRODUCTS_Tooltip = Column "Installations on the sites" of the list of the products and tab of the product card (products linked to at least one plugin). Disabled: no column nor tab on the products. Disabled by default.

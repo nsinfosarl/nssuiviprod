@@ -18,9 +18,9 @@
  */
 
 /**
- *   	\file       siteurl_list.php
+ *   	\file       htdocs/custom/nssuiviprod/core/site/site_list.php
  *		\ingroup    nssuiviprod
- *		\brief      List page for siteurl
+ *		\brief      List page for site
  */
 
 // General defined Options
@@ -76,6 +76,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -91,7 +97,8 @@ include_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 // load module libraries
-include_once __DIR__.'/class/siteurl.class.php';
+include_once dirname(__DIR__, 2).'/class/site.class.php';
+include_once dirname(__DIR__, 2).'/class/siteurl.class.php';
 // for other modules
 //dol_include_once('/othermodule/class/otherobject.class.php');
 
@@ -128,7 +135,7 @@ $pageprev = $page - 1;
 $pagenext = $page + 1;
 
 // Initialize technical objects
-$object = new SiteUrl($db);
+$object = new Site($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($contextpage)); 	// Note that conf->hooks_modules contains array of activated contexes
@@ -150,10 +157,6 @@ if (!$sortorder) {
 
 // Initialize array of search criteria
 $search_all = trim(GETPOST('search_all', 'alphanohtml'));
-$search_situation = GETPOST('search_situation', 'aZ09');	// Situation of the installed version (see SiteUrl::getSituationLabels())
-if ($search_situation == 'toupdate') {
-	$search_situation = SiteUrl::SITUATION_UPDATE;	// Former code of the menu "Sites to update"
-}
 $search = array();
 foreach ($object->fields as $key => $val) {
 	if (GETPOST('search_'.$key, 'alpha') !== '') {
@@ -164,6 +167,8 @@ foreach ($object->fields as $key => $val) {
 		$search[$key.'_dtend'] = dol_mktime(23, 59, 59, GETPOSTINT('search_'.$key.'_dtendmonth'), GETPOSTINT('search_'.$key.'_dtendday'), GETPOSTINT('search_'.$key.'_dtendyear'));
 	}
 }
+
+$search_urls = trim(GETPOST('search_urls', 'alphanohtml'));
 
 // List of fields to search into when doing a "search in all"
 $fieldstosearchall = array();
@@ -197,6 +202,10 @@ foreach ($object->fields as $key => $val) {
 	}
 }
 
+// URL of the sites (shown before the status)
+$arrayfields['su.urls'] = array('label' => 'SiteUrls', 'checked' => '1', 'enabled' => '1', 'position' => 1500);
+$arrayfields['su.versions'] = array('label' => 'InstalledVersion', 'checked' => '1', 'enabled' => '1', 'position' => 1501);
+
 // Extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_array_fields.tpl.php';
 // Add hook to complete $arrayfield
@@ -204,18 +213,6 @@ $parameters = array('arrayfields' => &$arrayfields);
 $reshook = $hookmanager->executeHooks('completeArrayFields', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 $sql .= $hookmanager->resPrint;
 
-// Complete arrayfields with special fields
-$arrayfields = array_merge($arrayfields, array(
-	'situation' => array('type' => 'varchar', 'label' => 'Situation', 'checked' => '1', 'enabled' => '1', 'position' => '46', 'csslist' => 'center'),
-	'latestversion' => array('type' => 'varchar', 'label' => 'NssuiviprodCurrentVersion', 'checked' => '1', 'enabled' => '1', 'position' => '47', 'csslist' => 'center'),
-));
-$typebysite = array();	// Type of site of each site (the URLs have the type of their site)
-$resql = $db->query("SELECT s.rowid, s.fk_typesite FROM ".$db->prefix()."nssuiviprod_site as s WHERE s.entity IN (".getEntity('site').")");
-if ($resql) {
-	while ($obj = $db->fetch_object($resql)) {
-		$typebysite[(int) $obj->rowid] = (int) $obj->fk_typesite;
-	}
-}
 
 $object->fields = dol_sort_array($object->fields, 'position');
 $arrayfields = dol_sort_array($arrayfields, 'position');
@@ -226,7 +223,7 @@ $enablepermissioncheck = 1;	// Rights of the module always checked
 if ($enablepermissioncheck) {
 	$permissiontoread = $user->hasRight('nssuiviprod', 'site', 'read');
 	$permissiontoadd = $user->hasRight('nssuiviprod', 'site', 'write');
-	$permissiontodelete = $user->hasRight('nssuiviprod', 'site', 'write');
+	$permissiontodelete = $user->hasRight('nssuiviprod', 'site', 'delete');
 } else {
 	$permissiontoread = 1;
 	$permissiontoadd = 1;
@@ -281,7 +278,7 @@ if (empty($reshook)) {
 			}
 		}
 		$search_all = '';
-		$search_situation = '';
+		$search_urls = '';
 		$toselect = array();
 		$search_array_options = array();
 	}
@@ -291,8 +288,8 @@ if (empty($reshook)) {
 	}
 
 	// Mass actions
-	$objectclass = 'SiteUrl';
-	$objectlabel = 'SiteUrl';
+	$objectclass = 'Site';
+	$objectlabel = 'Site';
 	$uploaddir = $conf->nssuiviprod->dir_output;
 
 	global $error;
@@ -312,8 +309,8 @@ $form = new Form($db);
 
 $now = dol_now();
 
-$title = $langs->trans("SiteUrls");
-//$help_url = "EN:Module_SiteUrl|FR:Module_SiteUrl_FR|ES:Módulo_SiteUrl";
+$title = $langs->trans("Sites");
+//$help_url = "EN:Module_Site|FR:Module_Site_FR|ES:Módulo_Site";
 $help_url = '';
 $morejs = array();
 $morecss = array();
@@ -404,6 +401,9 @@ foreach ($search as $key => $val) {
 if ($search_all) {
 	$sql .= natural_search(array_keys($fieldstosearchall), $search_all);
 }
+if ($search_urls !== '') {
+	$sql .= " AND EXISTS (SELECT su.rowid FROM ".$db->prefix()."nssuiviprod_siteurl as su WHERE su.fk_site = t.rowid".natural_search(array('su.url', 'su.label'), $search_urls).")";
+}
 /*
 // If the internal user must only see his customers, force searching by him
 $search_sale = 0;
@@ -424,12 +424,6 @@ if ($socid) {
 }
 */
 //$sql.= dolSqlDateFilter("t.field", $search_xxxday, $search_xxxmonth, $search_xxxyear);
-// Search on the situation of the installed version
-if ($search_situation != '' && array_key_exists($search_situation, SiteUrl::getSituationLabels())) {
-	// The situation is computed (installed version compared to the current version of the type of site of the setup)
-	$ids = SiteUrl::getIdsBySituation($db, $search_situation);
-	$sql .= " AND t.rowid IN (".(count($ids) ? $db->sanitize(implode(',', $ids)) : '0').")";
-}
 // Add where from extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_sql.tpl.php';
 // Add where from hooks
@@ -512,7 +506,7 @@ $num = $db->num_rows($resql);
 if ($num == 1 && getDolGlobalInt('MAIN_SEARCH_DIRECT_OPEN_IF_ONLY_ONE') && $search_all && !$page) {
 	$obj = $db->fetch_object($resql);
 	$id = $obj->rowid;
-	header("Location: ".dol_buildpath('/nssuiviprod/siteurl_card.php', 1).'?id='.((int) $id));
+	header("Location: ".dol_buildpath('/nssuiviprod/core/site/site_card.php', 1).'?id='.((int) $id));
 	exit;
 }
 
@@ -521,6 +515,8 @@ if ($num == 1 && getDolGlobalInt('MAIN_SEARCH_DIRECT_OPEN_IF_ONLY_ONE') && $sear
 // --------------------------------------------------------------------
 
 llxHeader('', $title, $help_url, '', 0, 0, $morejs, $morecss, '', 'mod-nssuiviprod page-list bodyforlist');	// Can use also classforhorizontalscrolloftabs instead of bodyforlist for a horizontal scroll in the table instead of page
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+print PluginModule::getDatabaseWarning($db);	// Database of the module not up to date: deactivate and activate the module
 
 // Example : Adding jquery code
 // print '<script type="text/javascript">
@@ -549,6 +545,9 @@ if (!empty($contextpage) && $contextpage != getDolDefaultContextPage(__FILE__)) 
 if ($limit > 0 && $limit != $conf->liste_limit) {
 	$param .= '&limit='.((int) $limit);
 }
+if ($search_urls !== '') {
+	$param .= '&search_urls='.urlencode($search_urls);
+}
 if ($optioncss != '') {
 	$param .= '&optioncss='.urlencode($optioncss);
 }
@@ -569,9 +568,6 @@ foreach ($search as $key => $val) {
 	} elseif ($search[$key] != '') {
 		$param .= '&search_'.$key.'='.urlencode($search[$key]);
 	}
-}
-if ($search_situation != '') {
-	$param .= '&search_situation='.urlencode($search_situation);
 }
 // Add $param from extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
@@ -616,14 +612,14 @@ $newcardbutton .= dolGetButtonTitle($langs->trans('ViewKanban'), '', 'fa fa-th-l
 //$newcardbutton .= dolGetButtonTitle($langs->trans('ViewKanbanGroupBy'), '', 'fa fa-grip-vertical imgforviewmode', $_SERVER["PHP_SELF"].'?mode=kanbangroupby&groupby=p.fk_opp_status'.preg_replace('/(&|\?)*(mode|groupby)=[^&]+/', '', $param), '', ($mode == 'kanbangroupby' ? 2 : 1), array('morecss' => 'reposition'));
 //$newcardbutton .= dolGetButtonTitle($langs->trans('HierarchicView'), '', 'fa fa-stream paddingleft imgforviewmode', $_SERVER["PHP_SELF"].'?mode=hierarchy'.preg_replace('/(&|\?)*(mode|groupby)=[^&]+/', '', $param), '', (($mode == 'hierarchy') ? 2 : 1), array('morecss' => 'reposition'));
 $newcardbutton .= dolGetButtonTitleSeparator();
-$newcardbutton .= dolGetButtonTitle($langs->trans('New'), '', 'fa fa-plus-circle', dol_buildpath('/nssuiviprod/siteurl_card.php', 1).'?action=create&backtopage='.urlencode($_SERVER['PHP_SELF']), '', $permissiontoadd);
+$newcardbutton .= dolGetButtonTitle($langs->trans('New'), '', 'fa fa-plus-circle', dol_buildpath('/nssuiviprod/core/site/site_card.php', 1).'?action=create&backtopage='.urlencode($_SERVER['PHP_SELF']), '', $permissiontoadd);
 
 print_barre_liste($title, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, $object->picto, 0, $newcardbutton, '', $limit, 0, 0, 1);
 
 // Add code for pre mass action (confirmation or email presend form)
-$topicmail = "SendSiteUrlRef";
-$modelmail = "siteurl";
-$objecttmp = new SiteUrl($db);
+$topicmail = "SendSiteRef";
+$modelmail = "site";
+$objecttmp = new Site($db);
 $trackid = 'xxxx'.$object->id;
 include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
 
@@ -639,12 +635,6 @@ if ($search_all) {
 }
 
 $moreforfilter = '';
-$moreforfilter .= '<div class="divsearchfield">';
-$moreforfilter .= $langs->trans('Situation').' : '.$form->selectarray('search_situation', SiteUrl::getSituationLabels(), $search_situation, 1, 0, 0, '', 0, 0, 0, '', 'maxwidth200');
-$moreforfilter .= '</div>';
-/*$moreforfilter.='<div class="divsearchfield">';
-$moreforfilter.= $langs->trans('MyFilter') . ': <input type="text" name="search_myfield" value="'.dol_escape_htmltag($search_myfield).'">';
-$moreforfilter.= '</div>';*/
 
 $parameters = array();
 $reshook = $hookmanager->executeHooks('printFieldPreListTitle', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
@@ -693,6 +683,12 @@ foreach ($object->fields as $key => $val) {
 	} elseif (in_array($val['type'], array('double(24,8)', 'double(6,3)', 'integer', 'real', 'price')) && !in_array($key, array('id', 'rowid', 'ref', 'status')) && $val['label'] != 'TechnicalID' && empty($val['arrayofkeyval'])) {
 		$cssforfield .= ($cssforfield ? ' ' : '').'right';
 	}
+	if ($key == 'status' && !empty($arrayfields['su.urls']['checked'])) {
+		print '<td class="liste_titre"><input type="text" class="flat maxwidth150" name="search_urls" value="'.dol_escape_htmltag($search_urls).'"></td>';
+	}
+	if ($key == 'status' && !empty($arrayfields['su.versions']['checked'])) {
+		print '<td class="liste_titre"></td>';
+	}
 	if (!empty($arrayfields['t.'.$key]['checked'])) {
 		print '<td class="liste_titre'.($cssforfield ? ' '.$cssforfield : '').($key == 'status' ? ' parentonrightofpage' : '').'">';
 		if (!empty($val['arrayofkeyval']) && is_array($val['arrayofkeyval'])) {
@@ -729,15 +725,6 @@ include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_input.tpl.php';
 $parameters = array('arrayfields' => $arrayfields);
 $reshook = $hookmanager->executeHooks('printFieldListOption', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 print $hookmanager->resPrint;
-if (!empty($arrayfields['situation']['checked'])) {
-	print '<td class="liste_titre"></td>';
-}
-if (!empty($arrayfields['latestversion']['checked'])) {
-	print '<td class="liste_titre"></td>';
-}
-/*if (!empty($arrayfields['anotherfield']['checked'])) {
-	print '<td class="liste_titre"></td>';
-}*/
 // Action column
 if (!$conf->main_checkbox_left_column) {
 	print '<td class="liste_titre center maxwidthsearch">';
@@ -770,6 +757,14 @@ foreach ($object->fields as $key => $val) {
 		$cssforfield .= ($cssforfield ? ' ' : '').'right';
 	}
 	$cssforfield = preg_replace('/small\s*/', '', $cssforfield);	// the 'small' css must not be used for the title label
+	if ($key == 'status' && !empty($arrayfields['su.urls']['checked'])) {
+		print getTitleFieldOfList($arrayfields['su.urls']['label'], 0, $_SERVER['PHP_SELF'], '', '', $param, '', $sortfield, $sortorder)."\n";
+		$totalarray['nbfield']++;
+	}
+	if ($key == 'status' && !empty($arrayfields['su.versions']['checked'])) {
+		print getTitleFieldOfList($arrayfields['su.versions']['label'], 0, $_SERVER['PHP_SELF'], '', '', $param, '', $sortfield, $sortorder, 'center ')."\n";
+		$totalarray['nbfield']++;
+	}
 	if (!empty($arrayfields['t.'.$key]['checked'])) {
 		print getTitleFieldOfList($arrayfields['t.'.$key]['label'], 0, $_SERVER['PHP_SELF'], 't.'.$key, '', $param, ($cssforfield ? 'class="'.$cssforfield.'"' : ''), $sortfield, $sortorder, ($cssforfield ? $cssforfield.' ' : ''), 0, (empty($val['helplist']) ? '' : $val['helplist']))."\n";
 		$totalarray['nbfield']++;
@@ -781,18 +776,6 @@ include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_title.tpl.php';
 $parameters = array('arrayfields' => $arrayfields, 'param' => $param, 'sortfield' => $sortfield, 'sortorder' => $sortorder, 'totalarray' => &$totalarray);
 $reshook = $hookmanager->executeHooks('printFieldListTitle', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 print $hookmanager->resPrint;
-if (!empty($arrayfields['situation']['checked'])) {
-	print_liste_field_titre($arrayfields['situation']['label'], $_SERVER['PHP_SELF'], '', '', $param, '', $sortfield, $sortorder, 'center ');
-	$totalarray['nbfield']++;
-}
-if (!empty($arrayfields['latestversion']['checked'])) {
-	print_liste_field_titre($arrayfields['latestversion']['label'], $_SERVER['PHP_SELF'], '', '', $param, '', $sortfield, $sortorder, 'center ');
-	$totalarray['nbfield']++;
-}
-/*if (!empty($arrayfields['anotherfield']['checked'])) {
-	print '<th class="liste_titre">'.$langs->trans("AnotherField").'</th>';
-	$totalarray['nbfield']++;
-}*/
 // Action column
 if (!$conf->main_checkbox_left_column) {
 	print getTitleFieldOfList(($mode != 'kanban' ? $selectedfields : ''), 0, $_SERVER["PHP_SELF"], '', '', '', '', $sortfield, $sortorder, 'center maxwidthsearch ')."\n";
@@ -900,6 +883,55 @@ while ($i < $imaxinloop) {
 			}
 			//if (in_array($key, array('fk_soc', 'fk_user', 'fk_warehouse'))) $cssforfield = 'tdoverflowmax100';
 
+			// URL of the site (environment icon and link) and their installed version, in their order of the card
+			if ($key == 'status' && (!empty($arrayfields['su.urls']['checked']) || !empty($arrayfields['su.versions']['checked']))) {
+				$siteurls = array();
+				$sqlurl = "SELECT su.url, su.label, su.environment, su.version FROM ".$db->prefix()."nssuiviprod_siteurl as su";
+				$sqlurl .= " WHERE su.fk_site = ".((int) $object->id)." ORDER BY su.rang ASC, su.rowid ASC";
+				$resurl = $db->query($sqlurl);
+				while ($resurl && ($objurl = $db->fetch_object($resurl))) {
+					$siteurls[] = $objurl;
+				}
+			}
+			if ($key == 'status' && !empty($arrayfields['su.urls']['checked'])) {
+				print '<td class="tdoverflowmax300">';
+				foreach ($siteurls as $objurl) {
+					$urltitle = ((string) $objurl->label !== '' ? $objurl->label.' : ' : '').$objurl->url;
+					print '<div class="nowraponall" title="'.dol_escape_htmltag($urltitle).'">'.SiteUrl::getEnvironmentBadge($objurl->environment, 1).' ';
+					if (preg_match('/^https?:\/\//i', (string) $objurl->url)) {
+						print '<a href="'.dol_escape_htmltag($objurl->url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($objurl->url).'</a>';
+					} else {
+						print dol_escape_htmltag($objurl->url);
+					}
+					print '</div>';
+				}
+				print '</td>';
+				if (!$i) {
+					$totalarray['nbfield']++;
+				}
+			}
+			if ($key == 'status' && !empty($arrayfields['su.versions']['checked'])) {
+				// One line by URL, aligned on the URL column; colored by situation (current version of the type of site)
+				$situationlabels = SiteUrl::getSituationLabels();
+				$situationtypes = array(SiteUrl::SITUATION_UPTODATE => 'success', SiteUrl::SITUATION_UPDATE => 'warning');
+				$currentversion = SiteUrl::getCurrentVersion((int) $object->fk_typesite);
+				print '<td class="center nowraponall">';
+				foreach ($siteurls as $objurl) {
+					$situation = SiteUrl::computeSituation((int) $object->fk_typesite, (string) $objurl->version);
+					print '<div title="'.dol_escape_htmltag($situationlabels[$situation].($currentversion !== '' ? ' ('.$langs->trans('NssuiviprodCurrentVersion').' : '.$currentversion.')' : '')).'">';
+					if ((string) $objurl->version !== '') {
+						print dolGetBadge(dol_escape_htmltag($objurl->version), '', isset($situationtypes[$situation]) ? $situationtypes[$situation] : 'secondary');
+					} else {
+						print '<span class="opacitymedium">-</span>';
+					}
+					print '</div>';
+				}
+				print '</td>';
+				if (!$i) {
+					$totalarray['nbfield']++;
+				}
+			}
+
 			if (!empty($arrayfields['t.'.$key]['checked'])) {
 				print '<td'.($cssforfield ? ' class="'.$cssforfield.((preg_match('/tdoverflow/', $cssforfield) && !in_array($val['type'], array('ip', 'url')) && !is_numeric($object->$key)) ? ' classfortooltip' : '').'"' : '');
 				if (preg_match('/tdoverflow/', $cssforfield) && !in_array($val['type'], array('ip', 'url')) && !is_numeric($object->$key) && !in_array($key, array('ref'))) {
@@ -908,8 +940,6 @@ while ($i < $imaxinloop) {
 				print '>';
 				if ($key == 'status') {
 					print $object->getLibStatut(5);
-				} elseif ($key == 'environment') {
-					print SiteUrl::getEnvironmentBadge($object->environment, 1);	// Colored icon, label in the tooltip
 				} elseif ($key == 'rowid') {
 					print $object->showOutputField($val, $key, (string) $object->id, '');
 				} else {
@@ -945,29 +975,7 @@ while ($i < $imaxinloop) {
 		$parameters = array('arrayfields' => $arrayfields, 'object' => $object, 'obj' => $obj, 'i' => $i, 'totalarray' => &$totalarray);
 		$reshook = $hookmanager->executeHooks('printFieldListValue', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 		print $hookmanager->resPrint;
-		if (!empty($arrayfields['situation']['checked'])) {
-			print '<td class="center nowraponall">'.SiteUrl::getSituationBadge(SiteUrl::computeSituation(isset($typebysite[(int) $object->fk_site]) ? $typebysite[(int) $object->fk_site] : 0, (string) $object->version)).'</td>';
-			if (!$i) {
-				$totalarray['nbfield']++;
-			}
-		}
-		if (!empty($arrayfields['latestversion']['checked'])) {
-			// Current version of the type of the site of the URL (setup), in bold when it is not the installed version
-			print '<td class="center nowraponall">';
-			$currentversion = SiteUrl::getCurrentVersion(isset($typebysite[(int) $object->fk_site]) ? $typebysite[(int) $object->fk_site] : 0);
-			if ($currentversion !== '') {
-				$isinstalled = (trim((string) $object->version) !== '' && SiteUrl::compareVersions($object->version, $currentversion) == 0);
-				print ($isinstalled ? '' : '<strong>').dol_escape_htmltag($currentversion).($isinstalled ? '' : '</strong>');
-			}
-			print '</td>';
-			if (!$i) {
-				$totalarray['nbfield']++;
-			}
-		}
 
-		/*if (!empty($arrayfields['anotherfield']['checked'])) {
-			print '<td class="right">'.$obj->anotherfield.'</td>';
-		}*/
 
 		// Action column
 		if (empty($conf->main_checkbox_left_column)) {

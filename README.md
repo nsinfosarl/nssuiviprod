@@ -11,7 +11,7 @@
 
 ### Version
 
-- Version : 23.0.1
+- Version : 23.0.2
 - PHP : 7.4 - 8.3
 - Compatibilité : Dolibarr 20.0.0 - 24.0.x
 - NSINFO Framework : 23.8.0
@@ -42,12 +42,15 @@ Nssuiviprod : Suivi des sites, sans aucune modification du Core.
 - Association automatique des plugins aux produits plugins (bouton dans chaque onglet d'URL et à l'import) : par la référence Dolistore (produit « LOC_ » pour la location), sinon par la référence ou le libellé du produit
 - Référentiel des versions : version actuelle de chaque type de site dans les réglages (x.y.z) ; la version installée d'une URL est un numéro, comparé à cette version actuelle
 - Situation de chaque URL : à jour, mise à jour disponible, version non renseignée, ou pas de version actuelle pour son type de site
-- Liste des URL filtrable par situation (« À mettre à jour ») ; listes des sites et des plugins installés (quels clients ont tel plugin)
+- Liste des URL filtrable par situation (« Mise à jour disponible ») ; listes des sites et des plugins installés (quels clients ont tel plugin)
 - Accueil du module : URL des sites en service par situation, sites en service par type
 - Menu réductible à ses icônes (entrée « Réduire le menu », framework NSINFO)
 - Menu « Réglages » du module avec un droit dédié (« Accéder aux réglages du module ») : menu masqué sans ce droit
 - Réglages : accès aux dictionnaires Types de site et Types d'URL, version actuelle de chaque type de site ; modèle de numérotation des sites (standard par défaut, ou avancé avec masque)
-- Attributs supplémentaires sur les sites, les URL et les plugins (réglages : onglet « Attributs supplémentaires », un sous-onglet par objet)
+- Modules : chaque module (nom technique unique) est enregistré une seule fois, avec son identité et ses informations Dolistore, et relié à ses installations sur les URL des sites ; menu, liste (nombre d'installations) et fiche « Modules »
+- Dolistore : un module est interrogé au plus une fois par jour (option des réglages pour en autoriser plusieurs), tâche planifiée quotidienne de vérification des modules installés ; les boutons de vérification interrogent toujours le Dolistore ; adresse de l'API réglable (https://www.dolistore.com/api/ par défaut, compatible Dolibarr 20)
+- Fiche produit : onglet « Installations sur les sites », affiché seulement quand le produit est relié à un plugin ; liste des produits et services : colonne avec le picto du module et le nombre d'installations
+- Attributs supplémentaires sur les sites, les URL, les plugins et les modules (réglages : onglet « Attributs supplémentaires », un sous-onglet par objet)
 
 ## Traduction
 
@@ -64,3 +67,28 @@ Sans lui, l'activation du module est refusée avec un message d'erreur.
 - Depuis le menu "Déployer/Installer un module externe" de Dolibarr :
 - Glisser l'archive ZIP 'module_nssuiviprod-X.Y.Z' et cliquer sur "ENVOYER FICHIER"
 - Activer le module dans la liste des Modules/Applications installés
+
+## Mise à jour d'une installation existante
+
+Depuis la version 23.0.2 (table des modules et pages rangées dans `core/`) :
+
+1. Sauvegarder la base de données (Accueil > Outils d'administration > Sauvegarde).
+2. Déployer la nouvelle archive comme à l'installation (ou remplacer le dossier `custom/nssuiviprod`).
+3. **Désactiver puis réactiver le module** (Accueil > Configuration > Modules). L'activation :
+   - crée la table des modules et ajoute le lien des plugins vers leur module ;
+   - migre automatiquement les plugins existants : un module par nom technique (ou par libellé pour un plugin saisi
+     à la main), avec les informations de son dernier plugin et les informations Dolistore déjà trouvées ; sans
+     effet si la migration est déjà faite ;
+   - supprime les anciennes pages de la racine du module (déplacées dans `core/site`, `core/url`, `core/plugin`) ;
+     si le serveur web ne peut pas les supprimer, les effacer à la main (`site_*.php`, `siteurl_*.php`,
+     `siteplugin_*.php` à la racine de `custom/nssuiviprod`) ;
+   - met à jour les menus, les onglets (tiers, produit) et la tâche planifiée.
+4. Contrôler le menu « Modules » : un module par nom technique, avec son nombre d'installations.
+
+La migration ne se lance qu'une fois : la version de la base du module est enregistrée après la migration
+(constante `NSSUIVIPROD_DB_VERSION`), une nouvelle réactivation ne la relance pas. Tant que la base n'est pas à jour,
+un avertissement s'affiche sur l'accueil, les réglages et les pages principales du module, et l'import du fichier JSON
+est refusé.
+
+Les anciennes colonnes des plugins (identité et Dolistore) restent en base, inutilisées.
+

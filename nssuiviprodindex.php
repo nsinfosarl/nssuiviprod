@@ -119,6 +119,8 @@ $form = new Form($db);
 $formfile = new FormFile($db);
 
 llxHeader("", $langs->trans("NssuiviprodArea"), '', '', 0, 0, '', '', '', 'mod-nssuiviprod page-index');
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+print PluginModule::getDatabaseWarning($db);	// Database of the module not up to date: deactivate and activate the module
 
 print load_fiche_titre($langs->trans("NssuiviprodArea"), '', 'object_nssuiviprod@nssuiviprod');
 
@@ -157,8 +159,8 @@ if ($resql) {
 	}
 	$db->free($resql);
 }
-$urllist = dol_buildpath('/nssuiviprod/site_list.php', 1);
-$urllisturls = dol_buildpath('/nssuiviprod/siteurl_list.php', 1);
+$urllist = dol_buildpath('/nssuiviprod/core/site/site_list.php', 1);
+$urllisturls = dol_buildpath('/nssuiviprod/core/url/siteurl_list.php', 1);
 
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';

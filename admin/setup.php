@@ -75,16 +75,21 @@ if ($user->admin) {
 	$arrayofparameters['NssuiviprodDictSiteType'] = array('type' => 'link', 'rootfile' => nssuiviprodDictionaryUrl('c_nssuiviprod_typesite'));
 	$arrayofparameters['NssuiviprodDictUrlType'] = array('type' => 'link', 'rootfile' => nssuiviprodDictionaryUrl('c_nssuiviprod_typeurl'));
 }
-if (isModEnabled('categorie') && (isModEnabled('product') || isModEnabled('service'))) {
+if (isModEnabled('product') || isModEnabled('service')) {
 	$arrayofparameters['NSSUIVIPROD_TITLEPLUGINS'] = array('type' => 'titletab', 'title' => 'SitePlugins', 'picto' => 'fa-puzzle-piece_fas_#5A2D82');
 	$arrayofparameters['TABDEB'] = array('type' => 'tabdeb');
-	$arrayofparameters['NSSUIVIPROD_PLUGIN_TAG'] = array('type' => 'seltags', 'typtag' => 'product', 'Tooltip' => 1);
+	if (isModEnabled('categorie')) {
+		$arrayofparameters['NSSUIVIPROD_PLUGIN_TAG'] = array('type' => 'seltags', 'typtag' => 'product', 'Tooltip' => 1);
+	}
+	$arrayofparameters['NSSUIVIPROD_SHOW_ON_SERVICES'] = array('type' => 'bool', 'Tooltip' => 1);
+	$arrayofparameters['NSSUIVIPROD_SHOW_ON_PRODUCTS'] = array('type' => 'bool', 'Tooltip' => 1);
 	$arrayofparameters['TABFIN'] = array('type' => 'tabfin');
 }
 // Dolistore: check of the versions launched automatically after the import of the JSON file of the external modules
 $arrayofparameters['NSSUIVIPROD_TITLEDOLISTORE'] = array('type' => 'titletab', 'title' => 'NssuiviprodTitleDolistore', 'picto' => 'fa-store_fas_#22A7D8');
 $arrayofparameters['TABDEB2'] = array('type' => 'tabdeb');
 $arrayofparameters['NSSUIVIPROD_DOLISTORE_AUTO'] = array('type' => 'bool', 'Tooltip' => 1);
+$arrayofparameters['NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY'] = array('type' => 'bool', 'Tooltip' => 1);
 $arrayofparameters['NSSUIVIPROD_DOLISTORE_API_URL'] = array('type' => 'text', 'size' => 50, 'default' => 'https://www.dolistore.com/api/', 'Tooltip' => 1);
 $arrayofparameters['TABFIN2'] = array('type' => 'tabfin');
 
@@ -153,6 +158,8 @@ $form = new Form($db);
 
 $page_name = "NssuiviprodSetup";
 llxHeader('', $langs->trans($page_name));
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+print PluginModule::getDatabaseWarning($db);	// Database of the module not up to date: deactivate and activate the module
 
 // Subheader
 $linkback = '<a href="'.($backtopage ? $backtopage : DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1').'">'.$langs->trans("BackToModuleList").'</a>';

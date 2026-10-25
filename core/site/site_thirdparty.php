@@ -16,7 +16,7 @@
  */
 
 /**
- *	\file       nssuiviprod/site_thirdparty.php
+ *	\file       htdocs/custom/nssuiviprod/core/site/site_thirdparty.php
  *	\ingroup    nskeepass
  *	\brief      Tab on the thirdparty card: list of the sites of the thirdparty
  */
@@ -51,6 +51,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 }
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
 }
 if (!$res) {
 	die("Include of main fails");
@@ -138,7 +144,7 @@ if (count($records)) {
 $typeurls = nssuiviprodGetDictionary($db, 'c_nssuiviprod_typeurl');
 
 $backtopage = $_SERVER['PHP_SELF'].'?socid='.$object->id;
-$newcardbutton = dolGetButtonTitle($langs->trans('NewSite'), '', 'fa fa-plus-circle', dol_buildpath('/nssuiviprod/site_card.php', 1).'?action=create&fk_soc='.$object->id.'&backtopage='.urlencode($backtopage), '', $permissiontoadd);
+$newcardbutton = dolGetButtonTitle($langs->trans('NewSite'), '', 'fa fa-plus-circle', dol_buildpath('/nssuiviprod/core/site/site_card.php', 1).'?action=create&fk_soc='.$object->id.'&backtopage='.urlencode($backtopage), '', $permissiontoadd);
 
 print '<br>';
 print load_fiche_titre($langs->trans("Sites"), $newcardbutton, $site->picto);

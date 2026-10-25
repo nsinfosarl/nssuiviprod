@@ -42,13 +42,13 @@ function sitePrepareHead($object)
 	$h = 0;
 	$head = array();
 
-	$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/site_card.php", 1), ['id' => $object->id]);
+	$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_card.php", 1), ['id' => $object->id]);
 	$head[$h][1] = $langs->trans("Site");
 	$head[$h][2] = 'card';
 	$h++;
 
 	if ($showtabofpagecontact) {
-		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/site_contact.php", 1), ['id' => $object->id]);
+		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_contact.php", 1), ['id' => $object->id]);
 		$head[$h][1] = $langs->trans("Contacts");
 		$head[$h][2] = 'contact';
 		$h++;
@@ -63,7 +63,7 @@ function sitePrepareHead($object)
 			if (!empty($object->note_public)) {
 				$nbNote++;
 			}
-			$head[$h][0] = dolBuildUrl(dol_buildpath('/nssuiviprod/site_note.php', 1), ['id' => $object->id]);
+			$head[$h][0] = dolBuildUrl(dol_buildpath('/nssuiviprod/core/site/site_note.php', 1), ['id' => $object->id]);
 			$head[$h][1] = $langs->trans('Notes');
 			if ($nbNote > 0) {
 				$head[$h][1] .= (!getDolGlobalInt('MAIN_OPTIMIZEFORTEXTBROWSER') ? '<span class="badge marginleftonlyshort">'.$nbNote.'</span>' : '');
@@ -79,7 +79,7 @@ function sitePrepareHead($object)
 		$upload_dir = $conf->nssuiviprod->dir_output."/site/".dol_sanitizeFileName($object->ref);
 		$nbFiles = count(dol_dir_list($upload_dir, 'files', 0, '', '(\.meta|_preview.*\.png)$'));
 		$nbLinks = Link::count($db, $object->element, $object->id);
-		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/site_document.php", 1), ['id' => $object->id]);
+		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_document.php", 1), ['id' => $object->id]);
 		$head[$h][1] = $langs->trans('Documents');
 		if (($nbFiles + $nbLinks) > 0) {
 			$head[$h][1] .= '<span class="badge marginleftonlyshort">'.($nbFiles + $nbLinks).'</span>';
@@ -89,7 +89,7 @@ function sitePrepareHead($object)
 	}
 
 	if ($showtabofpageagenda) {
-		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/site_agenda.php", 1), ['id' => $object->id]);
+		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_agenda.php", 1), ['id' => $object->id]);
 		$head[$h][1] = $langs->trans("Events");
 		$head[$h][2] = 'agenda';
 		$h++;
@@ -181,7 +181,7 @@ function nssuiviprodSiteBannerRef($object, $action = '')
 		$form = new Form($db);
 	}
 	$canedit = ($user->hasRight('nssuiviprod', 'site', 'write') && $object->status != Site::STATUS_CANCELED);
-	$cardurl = dol_buildpath('/nssuiviprod/site_card.php', 1).'?id='.((int) $object->id);
+	$cardurl = dol_buildpath('/nssuiviprod/core/site/site_card.php', 1).'?id='.((int) $object->id);
 	$pencil = function ($editaction, $label) use ($canedit, $cardurl, $langs) {
 		return $canedit ? ' <a class="editfielda reposition" href="'.$cardurl.'&action='.$editaction.'&token='.newToken().'">'.img_edit($langs->trans('Modify').' : '.$langs->trans($label), 0, 'class="paddingleft"').'</a>' : '';
 	};

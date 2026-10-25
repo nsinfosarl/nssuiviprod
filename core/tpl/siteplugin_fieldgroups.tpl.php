@@ -74,6 +74,22 @@ foreach ($fieldgroups as $groupname => $groupkeys) {
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_view.tpl.php';
 		}
 	}
+	// Fields of the module of the plugin (identity, Dolistore): read only, modified on the card of the module
+	$groupmodule = ($fieldgroupsmode == 'view' ? $object->getModule() : null);
+	if ($groupmodule) {
+		foreach ($groupkeys as $key) {
+			if (!isset(SitePlugin::$modulefields[$key]) || !isset($groupmodule->fields[SitePlugin::$modulefields[$key]])) {
+				continue;
+			}
+			$modulefield = SitePlugin::$modulefields[$key];
+			$moduleval = $groupmodule->fields[$modulefield];
+			print '<tr class="field_'.$key.'"><td class="titlefieldmiddle fieldname_'.$key.'">';
+			print (!empty($moduleval['help']) ? $form->textwithpicto($langs->trans($moduleval['label']), $langs->trans($moduleval['help'])) : $langs->trans($moduleval['label']));
+			print '</td><td class="valuefield fieldname_'.$key.((string) $moduleval['type'] == 'text' ? ' wordbreak' : '').'">';
+			print ($modulefield == 'ref' ? $groupmodule->getNomUrl(1) : $groupmodule->showOutputField($moduleval, $modulefield, (string) $groupmodule->$modulefield, ''));
+			print '</td></tr>';
+		}
+	}
 	print '</table>';
 	print '</div>';
 	$first = false;

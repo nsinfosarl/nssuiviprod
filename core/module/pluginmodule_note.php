@@ -1,6 +1,6 @@
 <?php
 /* Copyright (C) 2007-2017  Laurent Destailleur     <eldy@users.sourceforge.net>
- * Copyright (C) 2024       Frédéric France         <frederic.france@free.fr>
+ * Copyright (C) 2024-2025  Frédéric France         <frederic.france@free.fr>
  * Copyright (C) 2026		Nicolas SILOBRE				<contact@ns-info.fr>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,10 +18,11 @@
  */
 
 /**
- *  \file       siteurl_document.php
+ *  \file       htdocs/custom/nssuiviprod/core/module/pluginmodule_note.php
  *  \ingroup    nssuiviprod
- *  \brief      Tab for documents linked to SiteUrl
+ *  \brief      Tab for notes on PluginModule
  */
+
 
 // General defined Options
 //if (! defined('CSRFCHECK_WITH_TOKEN'))     define('CSRFCHECK_WITH_TOKEN', '1');					// Force use of CSRF protection with tokens even for GET
@@ -75,6 +76,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -86,71 +93,51 @@ if (!$res) {
  * @var Translate $langs
  * @var User $user
  */
-include_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
-include_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-include_once DOL_DOCUMENT_ROOT.'/core/lib/images.lib.php';
-include_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
-dol_include_once('/nssuiviprod/class/siteurl.class.php');
-dol_include_once('/nssuiviprod/lib/nssuiviprod_siteurl.lib.php');
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_pluginmodule.lib.php');
 
 // Load translation files required by the page
-$langs->loadLangs(array("nssuiviprod@nssuiviprod", "companies", "other", "mails"));
+$langs->loadLangs(array("nssuiviprod@nssuiviprod", "companies"));
 
 // Get parameters
-$action  = GETPOST('action', 'aZ09');
-$confirm = GETPOST('confirm');
-$id  = (GETPOSTINT('socid') ? GETPOSTINT('socid') : GETPOSTINT('id'));
-$ref = GETPOST('ref', 'alpha');
-
-$limit = GETPOSTINT('limit') ? GETPOSTINT('limit') : $conf->liste_limit;
-$sortfield = GETPOST('sortfield', 'aZ09comma');
-$sortorder = GETPOST('sortorder', 'aZ09comma');
-$page = GETPOSTISSET('pageplusone') ? (GETPOSTINT('pageplusone') - 1) : GETPOSTINT("page");
-if (empty($page) || $page == -1) {
-	$page = 0;
-}     // If $page is not defined, or '' or -1
-$offset = $limit * $page;
-$pageprev = $page - 1;
-$pagenext = $page + 1;
-if (!$sortorder) {
-	$sortorder = "ASC";
-}
-if (!$sortfield) {
-	$sortfield = "name";
-}
-//if (! $sortfield) $sortfield="position_name";
+$id = GETPOSTINT('id');
+$ref        = GETPOST('ref', 'alpha');
+$action = GETPOST('action', 'aZ09');
+$cancel     = GETPOST('cancel');
+$backtopage = GETPOST('backtopage', 'alpha');
 
 // Initialize a technical objects
-$object = new SiteUrl($db);
+$object = new PluginModule($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
-$hookmanager->initHooks(array($object->element.'document', 'globalcard')); // Note that conf->hooks_modules contains array
-
+$hookmanager->initHooks(array($object->element.'note', 'globalcard')); // Note that conf->hooks_modules contains array
 // Fetch optionals attributes and labels
 $extrafields->fetch_name_optionals_label($object->table_element);
 
 // Load object
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be 'include', not 'include_once'. Include fetch and fetch_thirdparty but not fetch_optionals
-
-$upload_dir = null;
 if ($id > 0 || !empty($ref)) {
-	$upload_dir = $conf->nssuiviprod->multidir_output[$object->entity ? $object->entity : $conf->entity]."/siteurl/".get_exdir(0, 0, 0, 1, $object);
+	$upload_dir = $conf->nssuiviprod->multidir_output[empty($object->entity) ? $conf->entity : $object->entity]."/".$object->id;
 }
 
-// Permissions
-// (There are several ways to check permission.)
+
+// There is several ways to check permission.
 // Set $enablepermissioncheck to 1 to enable a minimum low level of checks
 $enablepermissioncheck = 1;	// Rights of the module always checked
 if ($enablepermissioncheck) {
 	$permissiontoread = $user->hasRight('nssuiviprod', 'site', 'read');
-	$permissiontoadd  = $user->hasRight('nssuiviprod', 'site', 'write'); // Used by the include of actions_addupdatedelete.inc.php and actions_linkedfiles.inc.php
+	$permissiontoadd = $user->hasRight('nssuiviprod', 'site', 'write');
+	$permissionnote = $user->hasRight('nssuiviprod', 'site', 'write'); // Used by the include of actions_setnotes.inc.php
 } else {
 	$permissiontoread = 1;
-	$permissiontoadd  = 1;
+	$permissiontoadd = 1;
+	$permissionnote = 1;
 }
 
 // Security check (enable the most restrictive one)
-//if ($user->socid > 0) accessforbidden();
+if ($user->socid > 0) {
+	accessforbidden();	// External users only see the sites of their thirdparty (tab of the thirdparty card)
+}
 //if ($user->socid > 0) $socid = $user->socid;
 //$isdraft = (($object->status == $object::STATUS_DRAFT) ? 1 : 0);
 //restrictedArea($user, $object->module, $object->id, $object->table_element, $object->element, 'fk_soc', 'rowid', $isdraft);
@@ -160,17 +147,20 @@ if (!isModEnabled("nssuiviprod")) {
 if (!$permissiontoread) {
 	accessforbidden();
 }
-if (empty($object->id) || $upload_dir === null) {
-	accessforbidden();
-}
-
 
 
 /*
  * Actions
  */
 
-include DOL_DOCUMENT_ROOT.'/core/actions_linkedfiles.inc.php';
+$parameters = array();
+$reshook = $hookmanager->executeHooks('doActions', $parameters, $object, $action); // Note that $action and $object may have been modified by some hooks
+if ($reshook < 0) {
+	setEventMessages($hookmanager->error, $hookmanager->errors, 'errors');
+}
+if (empty($reshook)) {
+	include DOL_DOCUMENT_ROOT.'/core/actions_setnotes.inc.php'; // Must be 'include', not 'include_once'
+}
 
 
 /*
@@ -179,81 +169,78 @@ include DOL_DOCUMENT_ROOT.'/core/actions_linkedfiles.inc.php';
 
 $form = new Form($db);
 
-// Header
-// ------
-$title = $langs->trans("SiteUrl")." - ".$langs->trans("Files");
-//$title = $object->ref." - ".$langs->trans("Files");
+$title = $langs->trans('PluginModule').' - '.$langs->trans("Notes");
+//$title = $object->ref." - ".$langs->trans("Notes");
 $help_url = '';
-//Example $help_url='EN:Module_Third_Parties|FR:Module_Tiers|ES:Empresas';
-llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-card_document');
+//$help_url='EN:Customers_Orders|FR:Commandes_Clients|ES:Pedidos de clientes';
 
-// Show tabs
-$head = siteurlPrepareHead($object);
+llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-card_notes');
 
-print dol_get_fiche_head($head, 'document', $langs->trans("SiteUrl"), -1, $object->picto);
+if ($id > 0 || !empty($ref)) {
+	$object->fetch_thirdparty();
+
+	$head = pluginmodulePrepareHead($object);
+
+	print dol_get_fiche_head($head, 'note', $langs->trans("PluginModule"), -1, $object->picto);
+
+	// Object card
+	// ------------------------------------------------------------
+	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/module/pluginmodule_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+
+	$morehtmlref = '<div class="refidno">';
+	/*
+	 // Ref customer
+	 $morehtmlref.=$form->editfieldkey("RefCustomer", 'ref_client', $object->ref_client, $object, 0, 'string', '', 0, 1);
+	 $morehtmlref.=$form->editfieldval("RefCustomer", 'ref_client', $object->ref_client, $object, 0, 'string', '', null, null, '', 1);
+	 // Thirdparty
+	 $morehtmlref.='<br>'.$langs->trans('ThirdParty') . ' : ' . (is_object($object->thirdparty) ? $object->thirdparty->getNomUrl(1) : '');
+	 // Project
+	 if (isModEnabled('project')) {
+	 $langs->load("projects");
+	 $morehtmlref.='<br>'.$langs->trans('Project') . ' ';
+	 if ($permissiontoadd)
+	 {
+	 if ($action != 'classify')
+	 //$morehtmlref.='<a class="editfielda" href="' . dolBuildUrl($_SERVER['PHP_SELF'], ['action' => 'classify', 'id' => $object->id], true) . '">' . img_edit($langs->transnoentitiesnoconv('SetProject')) . '</a> : ';
+	 $morehtmlref.=' : ';
+	 if ($action == 'classify') {
+	 //$morehtmlref.=$form->form_project($_SERVER['PHP_SELF'] . '?id=' . $object->id, $object->socid, $object->fk_project, 'projectid', 0, 0, 1, 1);
+	 $morehtmlref.='<form method="post" action="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'">';
+	 $morehtmlref.='<input type="hidden" name="action" value="classin">';
+	 $morehtmlref.='<input type="hidden" name="token" value="'.newToken().'">';
+	 $morehtmlref.=$formproject->select_projects($object->socid, $object->fk_project, 'projectid', $maxlength, 0, 1, 0, 1, 0, 0, '', 1);
+	 $morehtmlref.='<input type="submit" class="button valignmiddle" value="'.$langs->trans("Modify").'">';
+	 $morehtmlref.='</form>';
+	 } else {
+	 $morehtmlref.=$form->form_project($_SERVER['PHP_SELF'] . '?id=' . $object->id, $object->socid, $object->fk_project, 'none', 0, 0, 0, 1);
+	 }
+	 } else {
+	 if (!empty($object->fk_project)) {
+	 $proj = new Project($db);
+	 $proj->fetch($object->fk_project);
+	 $morehtmlref .= ': '.$proj->getNomUrl();
+	 } else {
+	 $morehtmlref .= '';
+	 }
+	 }
+	 }*/
+	$morehtmlref .= '</div>';
 
 
-// Build file list
-$filearray = dol_dir_list($upload_dir, "files", 0, '', '(\.meta|_preview.*\.png)$', $sortfield, (strtolower($sortorder) == 'desc' ? SORT_DESC : SORT_ASC), 1);
-$totalsize = 0;
-foreach ($filearray as $key => $file) {
-	$totalsize += $file['size'];
+	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
+
+
+	print '<div class="fichecenter">';
+	print '<div class="underbanner clearboth"></div>';
+
+
+	$cssclass = "titlefield";
+	include DOL_DOCUMENT_ROOT.'/core/tpl/notes.tpl.php';
+
+	print '</div>';
+
+	print dol_get_fiche_end();
 }
-
-// Object card
-// ------------------------------------------------------------
-$linkback = '<a href="'.dol_buildpath('/nssuiviprod/siteurl_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
-
-$morehtmlref = '<div class="refidno">';
-/*
-// Ref customer
-$morehtmlref.=$form->editfieldkey("RefCustomer", 'ref_client', $object->ref_client, $object, 0, 'string', '', 0, 1);
-$morehtmlref.=$form->editfieldval("RefCustomer", 'ref_client', $object->ref_client, $object, 0, 'string', '', null, null, '', 1);
-// Thirdparty
-$morehtmlref.='<br>'.$langs->trans('ThirdParty') . ' : ' . (is_object($object->thirdparty) ? $object->thirdparty->getNomUrl(1) : '');
-// Project
-if (isModEnabled('project')) {
-		// Project
-		if (isModEnabled('project')) {
-			$langs->load("projects");
-			if (!empty($object->fk_project)) {
-				$proj = new Project($db);
-				$proj->fetch($object->fk_project);
-				$morehtmlref .= $proj->getNomUrl(1);
-				if ($proj->title) {
-					$morehtmlref .= '<span class="opacitymedium"> - '.dol_escape_htmltag($proj->title).'</span>';
-				}
-			}
-		}
-	}
-*/
-$morehtmlref .= '</div>';
-
-dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
-
-print '<div class="fichecenter">';
-
-print '<div class="underbanner clearboth"></div>';
-print '<table class="border centpercent tableforfield">';
-
-// Number of files
-print '<tr><td class="titlefield">'.$langs->trans("NbOfAttachedFiles").'</td><td colspan="3">'.count($filearray).'</td></tr>';
-
-// Total size
-print '<tr><td>'.$langs->trans("TotalSizeOfAttachedFiles").'</td><td colspan="3">'.$totalsize.' '.$langs->trans("bytes").'</td></tr>';
-
-print '</table>';
-
-print '</div>';
-
-print dol_get_fiche_end();
-
-$modulepart = 'nssuiviprod';
-$param = '&id='.$object->id;
-//$relativepathwithnofile='siteurl/' . dol_sanitizeFileName($object->id).'/';
-$relativepathwithnofile = 'siteurl/'.dol_sanitizeFileName($object->ref).'/';
-
-include DOL_DOCUMENT_ROOT.'/core/tpl/document_actions_post_headers.tpl.php';
 
 // End of page
 llxFooter();

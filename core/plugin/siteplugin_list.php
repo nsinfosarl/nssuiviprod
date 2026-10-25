@@ -18,9 +18,9 @@
  */
 
 /**
- *   	\file       site_list.php
+ *   	\file       htdocs/custom/nssuiviprod/core/plugin/siteplugin_list.php
  *		\ingroup    nssuiviprod
- *		\brief      List page for site
+ *		\brief      List page for siteplugin
  */
 
 // General defined Options
@@ -76,6 +76,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -91,7 +97,7 @@ include_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 // load module libraries
-include_once __DIR__.'/class/site.class.php';
+include_once dirname(__DIR__, 2).'/class/siteplugin.class.php';
 // for other modules
 //dol_include_once('/othermodule/class/otherobject.class.php');
 
@@ -128,7 +134,7 @@ $pageprev = $page - 1;
 $pagenext = $page + 1;
 
 // Initialize technical objects
-$object = new Site($db);
+$object = new SitePlugin($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($contextpage)); 	// Note that conf->hooks_modules contains array of activated contexes
@@ -150,6 +156,7 @@ if (!$sortorder) {
 
 // Initialize array of search criteria
 $search_all = trim(GETPOST('search_all', 'alphanohtml'));
+$search_m_publisher = trim(GETPOST('search_m_publisher', 'alphanohtml'));	// Publisher of the module of the plugins
 $search = array();
 foreach ($object->fields as $key => $val) {
 	if (GETPOST('search_'.$key, 'alpha') !== '') {
@@ -192,6 +199,9 @@ foreach ($object->fields as $key => $val) {
 		);
 	}
 }
+// Fields of the module of the plugins (table of the modules)
+$arrayfields['m.publisher'] = array('label' => 'PluginPublisher', 'checked' => '1', 'enabled' => '1', 'position' => 104);
+$arrayfields['m.dolistore_version'] = array('label' => 'PluginDolistoreVersion', 'checked' => '1', 'enabled' => '1', 'position' => 141);
 
 // Extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_array_fields.tpl.php';
@@ -200,6 +210,10 @@ $parameters = array('arrayfields' => &$arrayfields);
 $reshook = $hookmanager->executeHooks('completeArrayFields', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 $sql .= $hookmanager->resPrint;
 
+// Complete arrayfields with special fields
+/*$arrayfields = array_merge($arrayfields, array(
+	'anotherfield' => array('type'=>'integer', 'label'=>'AnotherField', 'checked'=>'1', 'enabled'=>'1', 'position'=>'90', 'csslist'=>'right'),
+));*/
 
 $object->fields = dol_sort_array($object->fields, 'position');
 $arrayfields = dol_sort_array($arrayfields, 'position');
@@ -210,7 +224,7 @@ $enablepermissioncheck = 1;	// Rights of the module always checked
 if ($enablepermissioncheck) {
 	$permissiontoread = $user->hasRight('nssuiviprod', 'site', 'read');
 	$permissiontoadd = $user->hasRight('nssuiviprod', 'site', 'write');
-	$permissiontodelete = $user->hasRight('nssuiviprod', 'site', 'delete');
+	$permissiontodelete = $user->hasRight('nssuiviprod', 'site', 'write');
 } else {
 	$permissiontoread = 1;
 	$permissiontoadd = 1;
@@ -265,6 +279,7 @@ if (empty($reshook)) {
 			}
 		}
 		$search_all = '';
+		$search_m_publisher = '';
 		$toselect = array();
 		$search_array_options = array();
 	}
@@ -274,15 +289,54 @@ if (empty($reshook)) {
 	}
 
 	// Mass actions
-	$objectclass = 'Site';
-	$objectlabel = 'Site';
+	$objectclass = 'SitePlugin';
+	$objectlabel = 'SitePlugin';
 	$uploaddir = $conf->nssuiviprod->dir_output;
 
 	global $error;
 	include DOL_DOCUMENT_ROOT.'/core/actions_massactions.inc.php';
 
-	// You can add more action here
-	// if ($action == 'xxx' && $permissiontoxxx) ...
+	// Mass action: check the current version of the plugins on the Dolistore
+	if ($massaction == 'checkdolistore' && $permissiontoadd && !empty($toselect)) {
+		$nbfound = 0;
+		$nbnotfound = 0;
+		foreach ($toselect as $toselectid) {
+			$tmpplugin = new SitePlugin($db);
+			if ($tmpplugin->fetch((int) $toselectid) > 0) {
+				$res = $tmpplugin->checkDolistoreVersion($user, 0, 1);	// Asked by the user: always checked
+				if ($res == 1) {
+					$nbfound++;
+				} elseif ($res == 0) {
+					$nbnotfound++;
+				} else {
+					setEventMessages($tmpplugin->error, $tmpplugin->errors, 'errors');
+					break;
+				}
+			}
+		}
+		setEventMessages($langs->trans('PluginDolistoreChecked', $nbfound, $nbnotfound), null, 'mesgs');
+		$toselect = array();
+		$massaction = '';
+	}
+	// Mass actions: set the plugins rented or not rented
+	if (in_array($massaction, array('setrental', 'unsetrental')) && $permissiontoadd && !empty($toselect)) {
+		$nbok = 0;
+		$tmpplugin = new SitePlugin($db);
+		foreach ($toselect as $toselectid) {
+			if ($tmpplugin->fetch((int) $toselectid) > 0) {
+				if ($tmpplugin->setValueFrom('rental', ($massaction == 'setrental' ? 1 : 0), '', null, 'int', '', $user) > 0) {
+					$nbok++;
+				} else {
+					setEventMessages($tmpplugin->error, $tmpplugin->errors, 'errors');
+				}
+			}
+		}
+		if ($nbok) {
+			setEventMessages($langs->trans('RecordsModified', $nbok), null, 'mesgs');
+		}
+		$toselect = array();
+		$massaction = '';
+	}
 }
 
 
@@ -295,8 +349,8 @@ $form = new Form($db);
 
 $now = dol_now();
 
-$title = $langs->trans("Sites");
-//$help_url = "EN:Module_Site|FR:Module_Site_FR|ES:Módulo_Site";
+$title = $langs->trans("SitePlugins");
+//$help_url = "EN:Module_SitePlugin|FR:Module_SitePlugin_FR|ES:Módulo_SitePlugin";
 $help_url = '';
 $morejs = array();
 $morecss = array();
@@ -306,6 +360,7 @@ $morecss = array();
 // --------------------------------------------------------------------
 $sql = "SELECT";
 $sql .= " ".$object->getFieldList('t');
+$sql .= ", m.publisher as m_publisher, m.dolistore_version as m_dolistore_version, m.dolistore_id as m_dolistore_id, m.dolistore_date as m_dolistore_date";
 // Add fields from extrafields
 if (!empty($extrafields->attributes[$object->table_element]['label'])) {
 	foreach ($extrafields->attributes[$object->table_element]['label'] as $key => $val) {
@@ -321,6 +376,7 @@ $sql = preg_replace('/,\s*$/', '', $sql);
 $sqlfields = $sql; // $sql fields to remove for count total
 
 $sql .= " FROM ".$db->prefix().$object->table_element." as t";
+$sql .= " LEFT JOIN ".$db->prefix()."nssuiviprod_pluginmodule as m ON m.rowid = t.fk_module";
 //$sql .= " LEFT JOIN ".$db->prefix()."anothertable as rc ON rc.parent = t.rowid";
 if (isset($extrafields->attributes[$object->table_element]['label']) && is_array($extrafields->attributes[$object->table_element]['label']) && count($extrafields->attributes[$object->table_element]['label'])) {
 	$sql .= " LEFT JOIN ".$db->prefix().$object->table_element."_extrafields as ef on (t.rowid = ef.fk_object)";
@@ -386,6 +442,9 @@ foreach ($search as $key => $val) {
 }
 if ($search_all) {
 	$sql .= natural_search(array_keys($fieldstosearchall), $search_all);
+}
+if ($search_m_publisher !== '') {
+	$sql .= natural_search('m.publisher', $search_m_publisher);
 }
 /*
 // If the internal user must only see his customers, force searching by him
@@ -489,7 +548,7 @@ $num = $db->num_rows($resql);
 if ($num == 1 && getDolGlobalInt('MAIN_SEARCH_DIRECT_OPEN_IF_ONLY_ONE') && $search_all && !$page) {
 	$obj = $db->fetch_object($resql);
 	$id = $obj->rowid;
-	header("Location: ".dol_buildpath('/nssuiviprod/site_card.php', 1).'?id='.((int) $id));
+	header("Location: ".dol_buildpath('/nssuiviprod/core/plugin/siteplugin_card.php', 1).'?id='.((int) $id));
 	exit;
 }
 
@@ -498,6 +557,8 @@ if ($num == 1 && getDolGlobalInt('MAIN_SEARCH_DIRECT_OPEN_IF_ONLY_ONE') && $sear
 // --------------------------------------------------------------------
 
 llxHeader('', $title, $help_url, '', 0, 0, $morejs, $morecss, '', 'mod-nssuiviprod page-list bodyforlist');	// Can use also classforhorizontalscrolloftabs instead of bodyforlist for a horizontal scroll in the table instead of page
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+print PluginModule::getDatabaseWarning($db);	// Database of the module not up to date: deactivate and activate the module
 
 // Example : Adding jquery code
 // print '<script type="text/javascript">
@@ -525,6 +586,9 @@ if (!empty($contextpage) && $contextpage != getDolDefaultContextPage(__FILE__)) 
 }
 if ($limit > 0 && $limit != $conf->liste_limit) {
 	$param .= '&limit='.((int) $limit);
+}
+if ($search_m_publisher !== '') {
+	$param .= '&search_m_publisher='.urlencode($search_m_publisher);
 }
 if ($optioncss != '') {
 	$param .= '&optioncss='.urlencode($optioncss);
@@ -561,6 +625,11 @@ $arrayofmassactions = array(
 	//'builddoc'=>img_picto('', 'pdf', 'class="pictofixedwidth"').$langs->trans("PDFMerge"),
 	//'presend'=>img_picto('', 'email', 'class="pictofixedwidth"').$langs->trans("SendByMail"),
 );
+if (!empty($permissiontoadd)) {
+	$arrayofmassactions['setrental'] = img_picto('', 'fa-file-contract', 'class="pictofixedwidth" style="color: #8E44AD"').$langs->trans("PluginSetRental");
+	$arrayofmassactions['unsetrental'] = img_picto('', 'fa-shopping-cart', 'class="pictofixedwidth" style="color: #95A5A6"').$langs->trans("PluginUnsetRental");
+	$arrayofmassactions['checkdolistore'] = '<img src="'.dol_buildpath('/nssuiviprod/img/dolistore_update.svg', 1).'" class="pictofixedwidth valignmiddle" style="height: 16px" alt="">'.$langs->trans("PluginDolistoreCheck");
+}
 if (!empty($permissiontodelete)) {
 	$arrayofmassactions['predelete'] = img_picto('', 'delete', 'class="pictofixedwidth"').$langs->trans("Delete");
 }
@@ -590,14 +659,14 @@ $newcardbutton .= dolGetButtonTitle($langs->trans('ViewKanban'), '', 'fa fa-th-l
 //$newcardbutton .= dolGetButtonTitle($langs->trans('ViewKanbanGroupBy'), '', 'fa fa-grip-vertical imgforviewmode', $_SERVER["PHP_SELF"].'?mode=kanbangroupby&groupby=p.fk_opp_status'.preg_replace('/(&|\?)*(mode|groupby)=[^&]+/', '', $param), '', ($mode == 'kanbangroupby' ? 2 : 1), array('morecss' => 'reposition'));
 //$newcardbutton .= dolGetButtonTitle($langs->trans('HierarchicView'), '', 'fa fa-stream paddingleft imgforviewmode', $_SERVER["PHP_SELF"].'?mode=hierarchy'.preg_replace('/(&|\?)*(mode|groupby)=[^&]+/', '', $param), '', (($mode == 'hierarchy') ? 2 : 1), array('morecss' => 'reposition'));
 $newcardbutton .= dolGetButtonTitleSeparator();
-$newcardbutton .= dolGetButtonTitle($langs->trans('New'), '', 'fa fa-plus-circle', dol_buildpath('/nssuiviprod/site_card.php', 1).'?action=create&backtopage='.urlencode($_SERVER['PHP_SELF']), '', $permissiontoadd);
+$newcardbutton .= dolGetButtonTitle($langs->trans('New'), '', 'fa fa-plus-circle', dol_buildpath('/nssuiviprod/core/plugin/siteplugin_card.php', 1).'?action=create&backtopage='.urlencode($_SERVER['PHP_SELF']), '', $permissiontoadd);
 
 print_barre_liste($title, $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, $massactionbutton, $num, $nbtotalofrecords, $object->picto, 0, $newcardbutton, '', $limit, 0, 0, 1);
 
 // Add code for pre mass action (confirmation or email presend form)
-$topicmail = "SendSiteRef";
-$modelmail = "site";
-$objecttmp = new Site($db);
+$topicmail = "SendSitePluginRef";
+$modelmail = "siteplugin";
+$objecttmp = new SitePlugin($db);
 $trackid = 'xxxx'.$object->id;
 include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
 
@@ -613,6 +682,9 @@ if ($search_all) {
 }
 
 $moreforfilter = '';
+/*$moreforfilter.='<div class="divsearchfield">';
+$moreforfilter.= $langs->trans('MyFilter') . ': <input type="text" name="search_myfield" value="'.dol_escape_htmltag($search_myfield).'">';
+$moreforfilter.= '</div>';*/
 
 $parameters = array();
 $reshook = $hookmanager->executeHooks('printFieldPreListTitle', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
@@ -690,6 +762,13 @@ foreach ($object->fields as $key => $val) {
 		print '</td>';
 	}
 }
+// Fields of the module of the plugins
+if (!empty($arrayfields['m.publisher']['checked'])) {
+	print '<td class="liste_titre"><input type="text" class="flat maxwidth75" name="search_m_publisher" value="'.dol_escape_htmltag($search_m_publisher).'"></td>';
+}
+if (!empty($arrayfields['m.dolistore_version']['checked'])) {
+	print '<td class="liste_titre"></td>';
+}
 // Extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_input.tpl.php';
 
@@ -697,6 +776,9 @@ include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_input.tpl.php';
 $parameters = array('arrayfields' => $arrayfields);
 $reshook = $hookmanager->executeHooks('printFieldListOption', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 print $hookmanager->resPrint;
+/*if (!empty($arrayfields['anotherfield']['checked'])) {
+	print '<td class="liste_titre"></td>';
+}*/
 // Action column
 if (!$conf->main_checkbox_left_column) {
 	print '<td class="liste_titre center maxwidthsearch">';
@@ -734,12 +816,25 @@ foreach ($object->fields as $key => $val) {
 		$totalarray['nbfield']++;
 	}
 }
+// Fields of the module of the plugins
+if (!empty($arrayfields['m.publisher']['checked'])) {
+	print getTitleFieldOfList($arrayfields['m.publisher']['label'], 0, $_SERVER['PHP_SELF'], 'm.publisher', '', $param, '', $sortfield, $sortorder)."\n";
+	$totalarray['nbfield']++;
+}
+if (!empty($arrayfields['m.dolistore_version']['checked'])) {
+	print getTitleFieldOfList($arrayfields['m.dolistore_version']['label'], 0, $_SERVER['PHP_SELF'], 'm.dolistore_version', '', $param, '', $sortfield, $sortorder, 'center ')."\n";
+	$totalarray['nbfield']++;
+}
 // Extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_title.tpl.php';
 // Hook fields
 $parameters = array('arrayfields' => $arrayfields, 'param' => $param, 'sortfield' => $sortfield, 'sortorder' => $sortorder, 'totalarray' => &$totalarray);
 $reshook = $hookmanager->executeHooks('printFieldListTitle', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 print $hookmanager->resPrint;
+/*if (!empty($arrayfields['anotherfield']['checked'])) {
+	print '<th class="liste_titre">'.$langs->trans("AnotherField").'</th>';
+	$totalarray['nbfield']++;
+}*/
 // Action column
 if (!$conf->main_checkbox_left_column) {
 	print getTitleFieldOfList(($mode != 'kanban' ? $selectedfields : ''), 0, $_SERVER["PHP_SELF"], '', '', '', '', $sortfield, $sortorder, 'center maxwidthsearch ')."\n";
@@ -855,6 +950,10 @@ while ($i < $imaxinloop) {
 				print '>';
 				if ($key == 'status') {
 					print $object->getLibStatut(5);
+				} elseif ($key == 'label') {
+					print dol_escape_htmltag((string) $object->label).' '.$object->getLinks();
+				} elseif ($key == 'rental') {
+					print SitePlugin::getRentalBadge($object->rental, 1);	// Colored icon, label in the tooltip
 				} elseif ($key == 'rowid') {
 					print $object->showOutputField($val, $key, (string) $object->id, '');
 				} else {
@@ -884,6 +983,24 @@ while ($i < $imaxinloop) {
 				}
 			}
 		}
+		// Fields of the module of the plugins
+		if (!empty($arrayfields['m.publisher']['checked'])) {
+			print '<td class="tdoverflowmax150" title="'.dol_escape_htmltag((string) $obj->m_publisher).'">'.dol_escape_htmltag((string) $obj->m_publisher).'</td>';
+			if (!$i) {
+				$totalarray['nbfield']++;
+			}
+		}
+		if (!empty($arrayfields['m.dolistore_version']['checked'])) {
+			// Module of the row read with the list (no request by row)
+			$rowmodule = new PluginModule($db);
+			$rowmodule->dolistore_version = $obj->m_dolistore_version;
+			$rowmodule->dolistore_id = $obj->m_dolistore_id;
+			$rowmodule->dolistore_date = $db->jdate($obj->m_dolistore_date);
+			print '<td class="center nowraponall">'.$rowmodule->getDolistoreVersionBadge((string) $object->version).'</td>';
+			if (!$i) {
+				$totalarray['nbfield']++;
+			}
+		}
 		// Extra fields
 		include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_print_fields.tpl.php';
 		// Fields from hook
@@ -891,6 +1008,9 @@ while ($i < $imaxinloop) {
 		$reshook = $hookmanager->executeHooks('printFieldListValue', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 		print $hookmanager->resPrint;
 
+		/*if (!empty($arrayfields['anotherfield']['checked'])) {
+			print '<td class="right">'.$obj->anotherfield.'</td>';
+		}*/
 
 		// Action column
 		if (empty($conf->main_checkbox_left_column)) {

@@ -82,3 +82,10 @@ ALTER TABLE llx_nssuiviprod_siteurl MODIFY COLUMN label varchar(255) NULL;
 -- setup; the versions referential is removed: the number of the former version of each URL is kept
 ALTER TABLE llx_nssuiviprod_siteurl ADD COLUMN version varchar(64);
 UPDATE llx_nssuiviprod_siteurl SET version = (SELECT v.ref FROM llx_nssuiviprod_siteversion as v WHERE v.rowid = llx_nssuiviprod_siteurl.fk_siteversion) WHERE (version IS NULL OR version = '') AND fk_siteversion > 0;
+
+-- 23.0.2: modules unique (table llx_nssuiviprod_pluginmodule): identity and Dolistore information of each module once,
+-- the plugins of the URLs are linked to it (fk_module). The data are migrated by PluginModule::migrateFromPlugins(),
+-- called by the activation of the module (init() of the descriptor). The former columns of the plugins are kept, no
+-- more used.
+ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN fk_module integer;
+ALTER TABLE llx_nssuiviprod_siteplugin ADD INDEX idx_nssuiviprod_siteplugin_fk_module (fk_module);

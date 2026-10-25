@@ -18,9 +18,9 @@
  */
 
 /**
- *  \file       siteurl_contact.php
+ *  \file       htdocs/custom/nssuiviprod/core/site/site_contact.php
  *  \ingroup    nssuiviprod
- *  \brief      Tab for contacts linked to SiteUrl
+ *  \brief      Tab for contacts linked to Site
  */
 
 // Load Dolibarr environment
@@ -54,6 +54,12 @@ if (!$res && file_exists("../../main.inc.php")) {
 if (!$res && file_exists("../../../main.inc.php")) {
 	$res = @include "../../../main.inc.php";
 }
+if (!$res && file_exists("../../../../main.inc.php")) {
+	$res = @include "../../../../main.inc.php";
+}
+if (!$res && file_exists("../../../../../main.inc.php")) {
+	$res = @include "../../../../../main.inc.php";
+}
 if (!$res) {
 	die("Include of main fails");
 }
@@ -67,8 +73,8 @@ if (!$res) {
  */
 include_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 include_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
-dol_include_once('/nssuiviprod/class/siteurl.class.php');
-dol_include_once('/nssuiviprod/lib/nssuiviprod_siteurl.lib.php');
+dol_include_once('/nssuiviprod/class/site.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
 
 // Load translation files required by the page
 $langs->loadLangs(array("nssuiviprod@nssuiviprod", "companies", "other", "mails"));
@@ -80,7 +86,7 @@ $socid  = GETPOSTINT('socid');
 $action = GETPOST('action', 'aZ09');
 
 // Initialize a technical objects
-$object = new SiteUrl($db);
+$object = new Site($db);
 $extrafields = new ExtraFields($db);
 $diroutputmassaction = $conf->nssuiviprod->dir_output.'/temp/massgeneration/'.$user->id;
 $hookmanager->initHooks(array($object->element.'contact', 'globalcard')); // Note that conf->hooks_modules contains array
@@ -154,7 +160,7 @@ if ($action == 'addcontact' && $permissiontoadd) {
  * View
  */
 
-$title = $langs->trans("SiteUrl")." - ".$langs->trans('ContactsAddresses');
+$title = $langs->trans("Site")." - ".$langs->trans('ContactsAddresses');
 //$title = $object->ref." - ".$langs->trans('ContactsAddresses');
 $help_url = '';
 //$help_url='EN:Module_Third_Parties|FR:Module_Tiers|ES:Empresas';
@@ -176,11 +182,11 @@ if ($object->id) {
 	/*
 	 * Show tabs
 	 */
-	$head = siteurlPrepareHead($object);
+	$head = sitePrepareHead($object);
 
-	print dol_get_fiche_head($head, 'contact', $langs->trans("SiteUrl"), -1, $object->picto);
+	print dol_get_fiche_head($head, 'contact', $langs->trans("Site"), -1, $object->picto);
 
-	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/siteurl_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
+	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/core/site/site_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
 
 	$morehtmlref = '<div class="refidno">';
 	/*
@@ -221,6 +227,7 @@ if ($object->id) {
 	 }*/
 	$morehtmlref .= '</div>';
 
+	$morehtmlref = nssuiviprodSiteBannerRef($object);	// Label, thirdparty and type of the site
 	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref, '', 0, '', '', 1);
 
 	print dol_get_fiche_end();
