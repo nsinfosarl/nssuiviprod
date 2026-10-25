@@ -92,6 +92,7 @@ class modNssuiviprod extends DolibarrModules
 		$this->const = array(
 			0 => array('NSSUIVIPROD_SITE_ADDON', 'chaine', 'mod_site_standard', 'Numbering model of the sites', 0, 'current', 0),
 			1 => array('NSSUIVIPROD_DOLISTORE_AUTO', 'chaine', '1', 'Check of the Dolistore versions after the import of the JSON file of the external modules', 0, 'current', 0),
+			2 => array('NSSUIVIPROD_DOLISTORE_API_URL', 'chaine', 'https://www.dolistore.com/api/', 'URL of the API of the Dolistore', 0, 'current', 0),
 		);
 
 		if (!isModEnabled("nssuiviprod")) {

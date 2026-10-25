@@ -85,6 +85,7 @@ if (isModEnabled('categorie') && (isModEnabled('product') || isModEnabled('servi
 $arrayofparameters['NSSUIVIPROD_TITLEDOLISTORE'] = array('type' => 'titletab', 'title' => 'NssuiviprodTitleDolistore', 'picto' => 'fa-store_fas_#22A7D8');
 $arrayofparameters['TABDEB2'] = array('type' => 'tabdeb');
 $arrayofparameters['NSSUIVIPROD_DOLISTORE_AUTO'] = array('type' => 'bool', 'Tooltip' => 1);
+$arrayofparameters['NSSUIVIPROD_DOLISTORE_API_URL'] = array('type' => 'text', 'size' => 50, 'default' => 'https://www.dolistore.com/api/', 'Tooltip' => 1);
 $arrayofparameters['TABFIN2'] = array('type' => 'tabfin');
 
 
@@ -162,6 +163,10 @@ print load_fiche_titre($langs->trans($page_name), $linkback, 'object_nssuiviprod
 $head = nssuiviprodAdminPrepareHead();
 print dol_get_fiche_head($head, 'settings', $langs->trans("Settings"), -1, "nssuiviprod@nssuiviprod");
 
+// Address of the API of the Dolistore not filled (module enabled before this setting): default value shown
+if (getDolGlobalString('NSSUIVIPROD_DOLISTORE_API_URL') === '') {
+	$conf->global->NSSUIVIPROD_DOLISTORE_API_URL = $arrayofparameters['NSSUIVIPROD_DOLISTORE_API_URL']['default'];
+}
 nsinfoSetup($arrayofparameters);
 
 // Current version of each type of site

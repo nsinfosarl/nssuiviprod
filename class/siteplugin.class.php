@@ -1179,8 +1179,21 @@ class SitePlugin extends CommonObject
 			return $cache[$search];
 		}
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/geturl.lib.php';
-		$apiurl = getDolGlobalString('MAIN_MODULE_DOLISTORE_API_SRV', 'https://www.dolistore.com/api/');
-		$apikey = getDolGlobalString('MAIN_MODULE_DOLISTORE_API_KEY', 'dolistorepublicapi');
+		// URL of the API in the setup of the module, otherwise the one of Dolibarr (Dolibarr 20 and lower force it to the
+		// former PrestaShop webservice, without /api: the new API is then used)
+		$apiurl = getDolGlobalString('NSSUIVIPROD_DOLISTORE_API_URL');
+		$apikey = '';
+		if ($apiurl === '') {
+			$apiurl = getDolGlobalString('MAIN_MODULE_DOLISTORE_API_SRV');
+			$apikey = getDolGlobalString('MAIN_MODULE_DOLISTORE_API_KEY');
+			if (!preg_match('/\/api(\/|$)/i', $apiurl)) {
+				$apiurl = 'https://www.dolistore.com/api/';
+				$apikey = '';
+			}
+		}
+		if ($apikey === '') {
+			$apikey = 'dolistorepublicapi';
+		}
 		$url = $apiurl.(preg_match('/\/$/', $apiurl) ? '' : '/').'products?'.http_build_query(array('search' => $search, 'limit' => 20, 'page' => 1, 'lang' => 'fr_FR', 'apikey' => $apikey));
 		$response = getURLContent($url, 'GET', '', 1, array('DOLAPIKEY: '.$apikey), array('https'), 0, -1, 5, 10);
 		if (empty($response['http_code']) || $response['http_code'] != 200) {
