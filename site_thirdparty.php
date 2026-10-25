@@ -60,7 +60,6 @@ require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 dol_include_once('/nssuiviprod/class/site.class.php');
 dol_include_once('/nssuiviprod/class/siteurl.class.php');
-dol_include_once('/nssuiviprod/class/siteversion.class.php');
 dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
 
 /**
@@ -181,7 +180,8 @@ foreach ($records as $record) {
 			$typelabel = isset($typeurls[(int) $tmpurl->fk_typeurl]) ? $typeurls[(int) $tmpurl->fk_typeurl] : '';
 			// URL (instance) with its installed version and its situation
 			$links[] = SiteUrl::getEnvironmentBadge($tmpurl->environment, 1).' <span class="opacitymedium">'.dol_escape_htmltag($typelabel).' :</span> '.dol_print_url($tmpurl->url, '_blank', 0, 1)
-				.' '.SiteVersion::getSituationBadge($tmpurl->getSituation())
+				.((string) $tmpurl->version !== '' ? ' <span class="nowraponall">'.dol_escape_htmltag($tmpurl->version).'</span>' : '')
+				.' '.SiteUrl::getSituationBadge(SiteUrl::computeSituation((int) $record->fk_typesite, (string) $tmpurl->version))
 				.(!empty($tmpurl->date_check) ? ' <span class="opacitymedium small">'.dol_print_date($tmpurl->date_check, 'day').'</span>' : '');
 		}
 		print implode('<br>', $links);

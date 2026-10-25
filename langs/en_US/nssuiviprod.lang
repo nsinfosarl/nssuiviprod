@@ -50,12 +50,6 @@ SitePlugin = Installed plugin
 SitePlugins = Installed plugins
 ShowSitePlugin = Show plugin
 DeleteSitePlugin = Delete plugin
-SiteVersion = Version
-SiteVersions = Versions
-NewSiteVersion = New version
-ListSiteVersion = List of versions
-ShowSiteVersion = Show version
-DeleteSiteVersion = Delete version
 NssuiviprodTabThirdparty = <span class="nssuiviprod-tabpicto pictofixedwidth"></span>Site tracking
 
 #
@@ -64,7 +58,7 @@ NssuiviprodTabThirdparty = <span class="nssuiviprod-tabpicto pictofixedwidth"></
 SiteLabel = Site name
 SiteType = Type of site
 InstalledVersion = Installed version
-InstalledVersionHelp = Version installed on the site, chosen among the enabled versions of the type of site (versions referential)
+InstalledVersionHelp = Number of the installed version (x.y.z), taken automatically from the JSON file of the external modules at the import. It is compared to the current version of the type of site (setup of the module)
 DateLastCheck = Date of last check
 UrlComplement = Complement
 UrlComplementHelp = Additional information about the URL (advanced text: formatting, links, lists…)
@@ -105,15 +99,6 @@ PluginDolistoreNewer = Newer version available on the Dolistore
 PluginDolistoreCheck = Check the Dolistore versions
 PluginDolistoreChecked = Dolistore versions: %s found, %s not found
 ErrorDolistoreNotReachable = The Dolistore does not answer.
-VersionNumber = Version number
-VersionNumberHelp = Number of the version (ex. 20.0.3). The versions of a same type of site are compared on this number to find the latest one
-ReleaseDate = Release date
-VersionState = State
-VersionStateSupported = Supported
-VersionStateObsolete = Obsolete
-VersionStateSecurity = Security issue
-VersionComment = Comment
-VersionCommentHelp = Reason of the update to suggest to the customer (security issue, end of support...)
 Nb = Number
 
 #
@@ -124,15 +109,10 @@ SiteStatusStopped = Stopped
 SiteStop = Stop the site
 SiteReopen = Put back in service
 Situation = Situation
-SituationToUpdate = To update (all)
 SituationUpToDate = Up to date
 SituationUpdate = Update available
-SituationObsolete = Obsolete version
-SituationSecurity = Security issue
 SituationUnknown = Version not set
-LatestVersion = Latest version
 SitesInServiceByType = Sites in service by type
-ErrorVersionNotOfSiteType = The installed version does not match the type of site.
 ErrorPluginProductOrLabelRequired = Set a product or the name of the plugin.
 
 #
@@ -140,10 +120,9 @@ ErrorPluginProductOrLabelRequired = Set a product or the name of the plugin.
 #
 DictionarySiteType = Site tracking - Types of site
 DictionaryUrlType = Site tracking - Types of URL
-NssuiviprodDictionaries = Dictionaries and referential
+NssuiviprodDictionaries = Dictionaries
 NssuiviprodDictSiteType = Types of site (Dolibarr, WordPress...)
 NssuiviprodDictUrlType = Types of URL (direct access, administration...)
-NssuiviprodVersionsReferential = Versions referential
 NssuiviprodArea = Site tracking
 
 #
@@ -152,9 +131,6 @@ NssuiviprodArea = Site tracking
 Permission17279101 = Read sites
 Permission17279102 = Create / update sites, their URLs and plugins
 Permission17279103 = Delete sites
-Permission17279111 = Read the versions referential
-Permission17279112 = Create / update the versions referential
-Permission17279113 = Delete versions of the referential
 
 #
 # Plugins
@@ -163,7 +139,6 @@ NSSUIVIPROD_PLUGIN_TAG = Category of the plugin products
 NSSUIVIPROD_PLUGIN_TAG_Tooltip = Only the products of this category and of its subcategories are proposed as plugins of a site. Without category, all the products are proposed
 ErrorPluginProductNotInTag = This product is not in the category of the plugins (setup of the module).
 NssuiviprodSetupMenu = Setup
-NssuiviprodReferential = Referential
 Permission17279121 = Access to the setup of the module
 
 #
@@ -265,17 +240,16 @@ UrlJsonImportHelp = JSON file of the external modules produced by the module "Li
 UrlJsonNewUrl = If the URL does not exist, it is created with:
 UrlJsonUrlCreated = URL created: %s
 UrlJsonUrlUpdated = URL updated: %s
-UrlJsonVersionCreated = Version %s created in the versions referential
 UrlJsonVersionSet = installed version %s
 ErrorUrlJsonNoInstance = The file does not give the address of its Dolibarr instance: generate it again with an up to date version of the module "List of external modules".
 NssuiviprodTitleDolistore = Dolistore
 NSSUIVIPROD_DOLISTORE_AUTO = Check the Dolistore versions automatically after the import of the external modules
 NSSUIVIPROD_DOLISTORE_AUTO_Tooltip = After the import of the JSON file of a URL, the versions of its plugins are searched on the Dolistore, then the plugins are linked to the products. The import is then longer. Otherwise, use the button "Check the Dolistore versions" of the tab of the URL.
-NssuiviprodCurrentVersions = Current version by type of site
+NssuiviprodCurrentVersions = Versions referential: current version by type of site
 NssuiviprodCurrentVersion = Current version
-NssuiviprodCurrentVersionHelp = Format x.y.z (e.g. 23.0.3). A lower installed version is not up to date (update available). Empty: the most recent enabled version of the referential is the reference. Obsolete versions or versions with a security issue are still reported as such.
+NssuiviprodCurrentVersionHelp = Format x.y.z (e.g. 23.0.3). A lower installed version is not up to date (update available), an equal or higher version is up to date. Empty: no comparison for this type of site ("No current version").
 ErrorCurrentVersionFormat = %s: current version "%s" not saved, expected format x.y.z (e.g. 23.0.3)
 ConfirmDeleteUrlWithPlugins = Delete this URL and its %s plugins?
 UrlPluginsDeleted = %s plugins deleted with the URL
-WarningUrlJsonNoVersion = Version %s of the file not saved: the site has no type of site.
 PluginSortHelp = Click to sort (a second click reverses the order)
+SituationNoCurrent = No current version

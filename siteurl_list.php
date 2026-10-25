@@ -92,7 +92,6 @@ include_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 include_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 // load module libraries
 include_once __DIR__.'/class/siteurl.class.php';
-include_once __DIR__.'/class/siteversion.class.php';
 // for other modules
 //dol_include_once('/othermodule/class/otherobject.class.php');
 
@@ -151,7 +150,10 @@ if (!$sortorder) {
 
 // Initialize array of search criteria
 $search_all = trim(GETPOST('search_all', 'alphanohtml'));
-$search_situation = GETPOST('search_situation', 'aZ09');	// Situation of the installed version (see SiteVersion::getSituationLabels())
+$search_situation = GETPOST('search_situation', 'aZ09');	// Situation of the installed version (see SiteUrl::getSituationLabels())
+if ($search_situation == 'toupdate') {
+	$search_situation = SiteUrl::SITUATION_UPDATE;	// Former code of the menu "Sites to update"
+}
 $search = array();
 foreach ($object->fields as $key => $val) {
 	if (GETPOST('search_'.$key, 'alpha') !== '') {
@@ -205,9 +207,8 @@ $sql .= $hookmanager->resPrint;
 // Complete arrayfields with special fields
 $arrayfields = array_merge($arrayfields, array(
 	'situation' => array('type' => 'varchar', 'label' => 'Situation', 'checked' => '1', 'enabled' => '1', 'position' => '46', 'csslist' => 'center'),
-	'latestversion' => array('type' => 'varchar', 'label' => 'LatestVersion', 'checked' => '1', 'enabled' => '1', 'position' => '47', 'csslist' => 'center'),
+	'latestversion' => array('type' => 'varchar', 'label' => 'NssuiviprodCurrentVersion', 'checked' => '1', 'enabled' => '1', 'position' => '47', 'csslist' => 'center'),
 ));
-$latestbytype = SiteVersion::getLatestByType($db);	// Latest enabled version of each type of site (computed, see SiteVersion)
 $typebysite = array();	// Type of site of each site (the URLs have the type of their site)
 $resql = $db->query("SELECT s.rowid, s.fk_typesite FROM ".$db->prefix()."nssuiviprod_site as s WHERE s.entity IN (".getEntity('site').")");
 if ($resql) {
@@ -424,13 +425,10 @@ if ($socid) {
 */
 //$sql.= dolSqlDateFilter("t.field", $search_xxxday, $search_xxxmonth, $search_xxxyear);
 // Search on the situation of the installed version
-if ($search_situation == SiteVersion::SITUATION_UNKNOWN) {
-	$knownids = array_keys(SiteVersion::getSituations($db));
-	$sql .= " AND (t.fk_siteversion IS NULL OR t.fk_siteversion = 0".(count($knownids) ? " OR t.fk_siteversion NOT IN (".$db->sanitize(implode(',', $knownids)).")" : "").")";
-} elseif ($search_situation != '' && array_key_exists($search_situation, SiteVersion::getSituationLabels())) {
-	$situations = ($search_situation == 'toupdate' ? array(SiteVersion::SITUATION_UPDATE, SiteVersion::SITUATION_OBSOLETE, SiteVersion::SITUATION_SECURITY) : array($search_situation));
-	$ids = SiteVersion::getIdsBySituation($db, $situations);
-	$sql .= " AND t.fk_siteversion IN (".(count($ids) ? $db->sanitize(implode(',', $ids)) : '0').")";
+if ($search_situation != '' && array_key_exists($search_situation, SiteUrl::getSituationLabels())) {
+	// The situation is computed (installed version compared to the current version of the type of site of the setup)
+	$ids = SiteUrl::getIdsBySituation($db, $search_situation);
+	$sql .= " AND t.rowid IN (".(count($ids) ? $db->sanitize(implode(',', $ids)) : '0').")";
 }
 // Add where from extra fields
 include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_sql.tpl.php';
@@ -642,7 +640,7 @@ if ($search_all) {
 
 $moreforfilter = '';
 $moreforfilter .= '<div class="divsearchfield">';
-$moreforfilter .= $langs->trans('Situation').' : '.$form->selectarray('search_situation', SiteVersion::getSituationLabels(), $search_situation, 1, 0, 0, '', 0, 0, 0, '', 'maxwidth200');
+$moreforfilter .= $langs->trans('Situation').' : '.$form->selectarray('search_situation', SiteUrl::getSituationLabels(), $search_situation, 1, 0, 0, '', 0, 0, 0, '', 'maxwidth200');
 $moreforfilter .= '</div>';
 /*$moreforfilter.='<div class="divsearchfield">';
 $moreforfilter.= $langs->trans('MyFilter') . ': <input type="text" name="search_myfield" value="'.dol_escape_htmltag($search_myfield).'">';
@@ -948,18 +946,18 @@ while ($i < $imaxinloop) {
 		$reshook = $hookmanager->executeHooks('printFieldListValue', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 		print $hookmanager->resPrint;
 		if (!empty($arrayfields['situation']['checked'])) {
-			print '<td class="center nowraponall">'.SiteVersion::getSituationBadge($object->getSituation()).'</td>';
+			print '<td class="center nowraponall">'.SiteUrl::getSituationBadge(SiteUrl::computeSituation(isset($typebysite[(int) $object->fk_site]) ? $typebysite[(int) $object->fk_site] : 0, (string) $object->version)).'</td>';
 			if (!$i) {
 				$totalarray['nbfield']++;
 			}
 		}
 		if (!empty($arrayfields['latestversion']['checked'])) {
-			// Latest enabled version of the type of the site of the URL, in bold when it is not the installed version
+			// Current version of the type of the site of the URL (setup), in bold when it is not the installed version
 			print '<td class="center nowraponall">';
-			if (!empty($latestbytype[(int) $typebysite[(int) $object->fk_site]])) {
-				$latest = $latestbytype[(int) $typebysite[(int) $object->fk_site]];
-				$isinstalled = SiteVersion::isLatest($db, $latest, (int) $object->fk_siteversion);
-				print ($isinstalled ? '' : '<strong>').dol_escape_htmltag($latest['ref']).($isinstalled ? '' : '</strong>');
+			$currentversion = SiteUrl::getCurrentVersion(isset($typebysite[(int) $object->fk_site]) ? $typebysite[(int) $object->fk_site] : 0);
+			if ($currentversion !== '') {
+				$isinstalled = (trim((string) $object->version) !== '' && SiteUrl::compareVersions($object->version, $currentversion) == 0);
+				print ($isinstalled ? '' : '<strong>').dol_escape_htmltag($currentversion).($isinstalled ? '' : '</strong>');
 			}
 			print '</td>';
 			if (!$i) {

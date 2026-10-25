@@ -74,10 +74,7 @@ if ($user->admin) {
 	$arrayofparameters['NSSUIVIPROD_TITLEDICT'] = array('type' => 'titletab', 'title' => 'NssuiviprodDictionaries', 'picto' => 'generic');
 	$arrayofparameters['NssuiviprodDictSiteType'] = array('type' => 'link', 'rootfile' => nssuiviprodDictionaryUrl('c_nssuiviprod_typesite'));
 	$arrayofparameters['NssuiviprodDictUrlType'] = array('type' => 'link', 'rootfile' => nssuiviprodDictionaryUrl('c_nssuiviprod_typeurl'));
-} else {
-	$arrayofparameters['NSSUIVIPROD_TITLEDICT'] = array('type' => 'titletab', 'title' => 'NssuiviprodReferential', 'picto' => 'generic');
 }
-$arrayofparameters['NssuiviprodVersionsReferential'] = array('type' => 'link', 'rootfile' => dol_buildpath('/nssuiviprod/siteversion_list.php', 1));
 if (isModEnabled('categorie') && (isModEnabled('product') || isModEnabled('service'))) {
 	$arrayofparameters['NSSUIVIPROD_TITLEPLUGINS'] = array('type' => 'titletab', 'title' => 'SitePlugins', 'picto' => 'fa-puzzle-piece_fas_#5A2D82');
 	$arrayofparameters['TABDEB'] = array('type' => 'tabdeb');

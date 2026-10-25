@@ -125,24 +125,23 @@ print load_fiche_titre($langs->trans("NssuiviprodArea"), '', 'object_nssuiviprod
 print '<div class="fichecenter"><div class="fichethirdleft">';
 
 dol_include_once('/nssuiviprod/class/site.class.php');
-dol_include_once('/nssuiviprod/class/siteversion.class.php');
+dol_include_once('/nssuiviprod/class/siteurl.class.php');
 dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
 
 // URLs (instances) of the sites in service by situation of the installed version, and sites in service by type
-$situations = SiteVersion::getSituations($db);
 $bysituation = array();
 $bytype = array();
-$sql = "SELECT u.fk_siteversion, COUNT(u.rowid) as nb";
+$sql = "SELECT u.version, t.fk_typesite";
 $sql .= " FROM ".$db->prefix()."nssuiviprod_siteurl as u";
 $sql .= " INNER JOIN ".$db->prefix()."nssuiviprod_site as t ON t.rowid = u.fk_site";
 $sql .= " WHERE t.status = ".((int) Site::STATUS_VALIDATED);
 $sql .= " AND u.entity IN (".getEntity('siteurl').")";
-$sql .= " GROUP BY u.fk_siteversion";
 $resql = $db->query($sql);
 if ($resql) {
 	while ($obj = $db->fetch_object($resql)) {
-		$situation = (!empty($obj->fk_siteversion) && isset($situations[(int) $obj->fk_siteversion])) ? $situations[(int) $obj->fk_siteversion] : SiteVersion::SITUATION_UNKNOWN;
-		$bysituation[$situation] = (isset($bysituation[$situation]) ? $bysituation[$situation] : 0) + (int) $obj->nb;
+		// Situation computed: installed version compared to the current version of the type of site (setup)
+		$situation = SiteUrl::computeSituation((int) $obj->fk_typesite, (string) $obj->version);
+		$bysituation[$situation] = (isset($bysituation[$situation]) ? $bysituation[$situation] : 0) + 1;
 	}
 	$db->free($resql);
 } else {
@@ -164,9 +163,9 @@ $urllisturls = dol_buildpath('/nssuiviprod/siteurl_list.php', 1);
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><th>'.$langs->trans('UrlsBySituation').'</th><th class="right">'.$langs->trans('Nb').'</th></tr>';
-foreach (array(SiteVersion::SITUATION_SECURITY, SiteVersion::SITUATION_OBSOLETE, SiteVersion::SITUATION_UPDATE, SiteVersion::SITUATION_UPTODATE, SiteVersion::SITUATION_UNKNOWN) as $situation) {
+foreach (array(SiteUrl::SITUATION_UPDATE, SiteUrl::SITUATION_UPTODATE, SiteUrl::SITUATION_UNKNOWN, SiteUrl::SITUATION_NOCURRENT) as $situation) {
 	print '<tr class="oddeven">';
-	print '<td><a href="'.$urllisturls.'?search_situation='.urlencode($situation).'">'.SiteVersion::getSituationBadge($situation).'</a></td>';
+	print '<td><a href="'.$urllisturls.'?search_situation='.urlencode($situation).'">'.SiteUrl::getSituationBadge($situation).'</a></td>';
 	print '<td class="right">'.(isset($bysituation[$situation]) ? $bysituation[$situation] : 0).'</td>';
 	print '</tr>';
 }

@@ -51,12 +51,6 @@ SitePlugin = Plugin installé
 SitePlugins = Plugins installés
 ShowSitePlugin = Voir le plugin
 DeleteSitePlugin = Supprimer le plugin
-SiteVersion = Version
-SiteVersions = Versions
-NewSiteVersion = Nouvelle version
-ListSiteVersion = Liste des versions
-ShowSiteVersion = Voir la version
-DeleteSiteVersion = Supprimer la version
 NssuiviprodTabThirdparty = <span class="nssuiviprod-tabpicto pictofixedwidth"></span>Suivi des sites
 
 #
@@ -65,7 +59,7 @@ NssuiviprodTabThirdparty = <span class="nssuiviprod-tabpicto pictofixedwidth"></
 SiteLabel = Nom du site
 SiteType = Type de site
 InstalledVersion = Version installée
-InstalledVersionHelp = Version installée sur le site, choisie parmi les versions actives du type de site (référentiel des versions)
+InstalledVersionHelp = Numéro de la version installée (x.y.z), repris automatiquement du fichier JSON des modules externes à l'import. Il est comparé à la version actuelle du type de site (réglages du module)
 DateLastCheck = Date du dernier contrôle
 UrlComplement = Complément
 UrlComplementHelp = Informations complémentaires sur l'URL (texte avancé : mise en forme, liens, listes…)
@@ -106,15 +100,6 @@ PluginDolistoreNewer = Version plus récente disponible sur le Dolistore
 PluginDolistoreCheck = Vérifier les versions Dolistore
 PluginDolistoreChecked = Versions Dolistore : %s trouvées, %s non trouvées
 ErrorDolistoreNotReachable = Le Dolistore ne répond pas.
-VersionNumber = Numéro de version
-VersionNumberHelp = Numéro de la version (ex. 20.0.3). Les versions d'un même type de site sont comparées sur ce numéro pour trouver la plus récente
-ReleaseDate = Date de sortie
-VersionState = État
-VersionStateSupported = Supportée
-VersionStateObsolete = Obsolète
-VersionStateSecurity = Faille de sécurité
-VersionComment = Commentaire
-VersionCommentHelp = Motif de la mise à jour à proposer au client (faille de sécurité, fin de support...)
 Nb = Nombre
 
 #
@@ -125,15 +110,10 @@ SiteStatusStopped = Arrêté
 SiteStop = Arrêter le site
 SiteReopen = Remettre en service
 Situation = Situation
-SituationToUpdate = À mettre à jour (toutes)
 SituationUpToDate = À jour
 SituationUpdate = Mise à jour disponible
-SituationObsolete = Version obsolète
-SituationSecurity = Faille de sécurité
 SituationUnknown = Version non renseignée
-LatestVersion = Dernière version
 SitesInServiceByType = Sites en service par type
-ErrorVersionNotOfSiteType = La version installée ne correspond pas au type de site.
 ErrorPluginProductOrLabelRequired = Indiquez un produit ou le nom du plugin.
 
 #
@@ -141,10 +121,9 @@ ErrorPluginProductOrLabelRequired = Indiquez un produit ou le nom du plugin.
 #
 DictionarySiteType = Suivi des sites - Types de site
 DictionaryUrlType = Suivi des sites - Types d'URL
-NssuiviprodDictionaries = Dictionnaires et référentiel
+NssuiviprodDictionaries = Dictionnaires
 NssuiviprodDictSiteType = Types de site (Dolibarr, WordPress...)
 NssuiviprodDictUrlType = Types d'URL (accès direct, administration...)
-NssuiviprodVersionsReferential = Référentiel des versions
 NssuiviprodArea = Suivi des sites
 
 #
@@ -153,9 +132,6 @@ NssuiviprodArea = Suivi des sites
 Permission17279101 = Consulter les sites
 Permission17279102 = Créer / modifier les sites, leurs URL et leurs plugins
 Permission17279103 = Supprimer les sites
-Permission17279111 = Consulter le référentiel des versions
-Permission17279112 = Créer / modifier le référentiel des versions
-Permission17279113 = Supprimer des versions du référentiel
 
 #
 # Plugins
@@ -164,7 +140,6 @@ NSSUIVIPROD_PLUGIN_TAG = Catégorie des produits plugins
 NSSUIVIPROD_PLUGIN_TAG_Tooltip = Seuls les produits de cette catégorie et de ses sous-catégories sont proposés comme plugins d'un site. Sans catégorie, tous les produits sont proposés
 ErrorPluginProductNotInTag = Ce produit n'est pas dans la catégorie des plugins (réglages du module).
 NssuiviprodSetupMenu = Réglages
-NssuiviprodReferential = Référentiel
 Permission17279121 = Accéder aux réglages du module
 
 #
@@ -266,17 +241,16 @@ UrlJsonImportHelp = Fichier JSON des modules externes produit par le module « L
 UrlJsonNewUrl = Si l'URL n'existe pas, elle est créée avec :
 UrlJsonUrlCreated = URL créée : %s
 UrlJsonUrlUpdated = URL mise à jour : %s
-UrlJsonVersionCreated = Version %s créée dans le référentiel des versions
 UrlJsonVersionSet = version installée %s
 ErrorUrlJsonNoInstance = Le fichier n'indique pas l'adresse de son instance Dolibarr : générez-le de nouveau avec une version à jour du module « Liste des modules externes ».
 NssuiviprodTitleDolistore = Dolistore
 NSSUIVIPROD_DOLISTORE_AUTO = Vérifier les versions Dolistore automatiquement après l'import des modules externes
 NSSUIVIPROD_DOLISTORE_AUTO_Tooltip = Après l'import du fichier JSON d'une URL, les versions de ses plugins sont recherchées sur le Dolistore, puis les plugins sont reliés aux produits. L'import est alors plus long. Sinon, utiliser le bouton « Vérifier les versions Dolistore » de l'onglet de l'URL.
-NssuiviprodCurrentVersions = Version actuelle par type de site
+NssuiviprodCurrentVersions = Référentiel des versions : version actuelle par type de site
 NssuiviprodCurrentVersion = Version actuelle
-NssuiviprodCurrentVersionHelp = Format x.y.z (ex. 23.0.3). Une version installée inférieure n'est pas à jour (mise à jour disponible). Vide : la version la plus récente du référentiel, parmi les versions actives, sert de référence. Les versions obsolètes ou avec une faille de sécurité restent signalées comme telles.
+NssuiviprodCurrentVersionHelp = Format x.y.z (ex. 23.0.3). Une version installée inférieure n'est pas à jour (mise à jour disponible), une version égale ou supérieure est à jour. Vide : pas de comparaison pour ce type de site (« Pas de version actuelle »).
 ErrorCurrentVersionFormat = %s : version actuelle « %s » non enregistrée, format attendu x.y.z (ex. 23.0.3)
 ConfirmDeleteUrlWithPlugins = Supprimer cette URL et ses %s plugins ?
 UrlPluginsDeleted = %s plugins supprimés avec l'URL
-WarningUrlJsonNoVersion = Version %s du fichier non enregistrée : le site n'a pas de type de site.
 PluginSortHelp = Cliquer pour trier (un second clic inverse l'ordre)
+SituationNoCurrent = Pas de version actuelle

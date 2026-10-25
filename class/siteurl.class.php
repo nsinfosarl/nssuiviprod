@@ -77,7 +77,6 @@ class SiteUrl extends CommonObject
 	 */
 	public $ismultientitymanaged = 1;
 
-
 	const STATUS_DRAFT = 0;
 	const STATUS_VALIDATED = 1;
 	const STATUS_CANCELED = 9;
@@ -125,6 +124,14 @@ class SiteUrl extends CommonObject
 	 *  Note: To have value dynamic, you can set value to 0 in definition and edit the value on the fly into the constructor.
 	 */
 
+	/**
+	 * Situations of the installed version of an URL, compared to the current version of its type of site
+	 */
+	const SITUATION_UPTODATE = 'uptodate';
+	const SITUATION_UPDATE = 'update';
+	const SITUATION_UNKNOWN = 'unknown';
+	const SITUATION_NOCURRENT = 'nocurrent';
+
 	// BEGIN MODULEBUILDER PROPERTIES
 	/**
 	 * @inheritdoc
@@ -145,7 +152,7 @@ class SiteUrl extends CommonObject
 		"fk_typeurl" => array("type" => "sellist:c_nssuiviprod_typeurl:label:rowid::(active:=:1)", "label" => "UrlType", "enabled" => "1", 'position' => 25, 'notnull' => 1, "visible" => "1", "index" => "1", "css" => "maxwidth300", "csslist" => "tdoverflowmax150", "validate" => "1",),
 		"url" => array("type" => "url", "label" => "Url", "enabled" => "1", 'position' => 30, 'notnull' => 1, "visible" => "1", "searchall" => "1", "css" => "minwidth400", "csslist" => "tdoverflowmax300", "validate" => "1",),
 		"environment" => array("type" => "integer", "label" => "UrlEnvironment", "enabled" => "1", 'position' => 10, 'notnull' => 1, "visible" => "1", "default" => "1", "index" => "1", "arrayofkeyval" => array("1" => "UrlEnvProd", "2" => "UrlEnvDev", "3" => "UrlEnvSandbox"), "css" => "maxwidth200", "csslist" => "center nowraponall", "help" => "UrlEnvironmentHelp", "validate" => "1",),
-		"fk_siteversion" => array("type" => "integer:SiteVersion:nssuiviprod/class/siteversion.class.php:1:(t.status:=:1)", "label" => "InstalledVersion", "picto" => "fa-code-branch_fas_#14182B", "enabled" => "1", 'position' => 45, 'notnull' => 0, "visible" => "1", "index" => "1", "css" => "maxwidth300", "csslist" => "tdoverflowmax150", "help" => "InstalledVersionHelp", "validate" => "1",),
+		"version" => array("type" => "varchar(64)", "label" => "InstalledVersion", "picto" => "fa-code-branch_fas_#14182B", "enabled" => "1", 'position' => 45, 'notnull' => 0, "visible" => "1", "searchall" => "1", "css" => "maxwidth150", "csslist" => "nowraponall", "help" => "InstalledVersionHelp", "validate" => "1",),
 		"date_check" => array("type" => "date", "label" => "DateLastCheck", "enabled" => "1", 'position' => 46, 'notnull' => 0, "visible" => "1", "validate" => "1",),
 		"rang" => array("type" => "integer", "label" => "Position", "enabled" => "1", 'position' => 50, 'notnull' => 1, "visible" => "0", "default" => "0", "comment" => "Order of the URLs of the site (drag and drop, core/ajax/row.php)"),
 		"entity" => array("type" => "integer", "label" => "Entity", "enabled" => "1", 'position' => 5, 'notnull' => 1, "visible" => "0", "default" => "1", "index" => "1",),
@@ -168,15 +175,10 @@ class SiteUrl extends CommonObject
 	public $complement;
 	public $environment;
 	public $rang;
-	public $fk_siteversion;
+	public $version;
 
-	/**
-	 * @var int Type of site used to filter the installed versions (setVersionFilter()), 0 if unknown
-	 */
-	public $versionfilter_typesite = 0;
 	public $date_check;
 	// END MODULEBUILDER PROPERTIES
-
 
 	// If this object has a subtable with lines
 
@@ -212,8 +214,6 @@ class SiteUrl extends CommonObject
 	//  * @var SiteUrlLine[]     Array of subtable lines
 	//  */
 	// public $lines = array();
-
-
 
 	/**
 	 * Constructor
@@ -276,9 +276,6 @@ class SiteUrl extends CommonObject
 		// The reference is the URL (no numbering for the URLs of a site)
 		$this->ref = dol_substr(trim((string) $this->url), 0, 128);
 
-		if (!$this->checkVersionType()) {
-			return -1;
-		}
 		// New URL at the end of the URLs of its site
 		if (empty($this->rang) && !empty($this->fk_site)) {
 			$resql = $this->db->query("SELECT MAX(rang) as maxrang FROM ".$this->db->prefix().$this->table_element." WHERE fk_site = ".((int) $this->fk_site));
@@ -433,7 +430,6 @@ class SiteUrl extends CommonObject
 		return $result;
 	}
 
-
 	/**
 	 * Load list of objects in memory from the database.
 	 * Using a fetchAll() with limit = 0 is a very bad practice. Instead try to forge yourself an optimized SQL request with
@@ -527,10 +523,6 @@ class SiteUrl extends CommonObject
 		// The reference is the URL (no numbering for the URLs of a site)
 		$this->ref = dol_substr(trim((string) $this->url), 0, 128);
 
-		if (!$this->checkVersionType()) {
-			return -1;
-		}
-
 		$old = new self($this->db);
 		$old->fetch($this->id);
 		$result = $this->updateCommon($user, $notrigger);
@@ -610,7 +602,6 @@ class SiteUrl extends CommonObject
 
 		return $this->deleteLineCommon($user, $idline, $notrigger);
 	}
-
 
 	/**
 	 *	Validate object
@@ -746,7 +737,6 @@ class SiteUrl extends CommonObject
 			return -1;
 		}
 	}
-
 
 	/**
 	 *	Set draft status
@@ -1059,7 +1049,6 @@ class SiteUrl extends CommonObject
 			'data-status' => (int) $status
 		)));
 
-
 		if (empty($this->labelStatus) || empty($this->labelStatusShort)) {
 			global $langs;
 			//$langs->load("nssuiviprod@nssuiviprod");
@@ -1165,68 +1154,126 @@ class SiteUrl extends CommonObject
 	}
 
 	/**
-	 * Check that the installed version belongs to the type of the site of the URL
+	 * Return the situation of the installed version, compared to the current version of the type of the site
 	 *
-	 * @return	bool		True if OK (or no version), false if KO (error in $this->error)
-	 */
-	public function checkVersionType()
-	{
-		global $langs;
-
-		if (empty($this->fk_siteversion)) {
-			return true;
-		}
-
-		$sql = "SELECT v.fk_typesite FROM ".$this->db->prefix()."nssuiviprod_siteversion as v";
-		$sql .= " WHERE v.rowid = ".((int) $this->fk_siteversion);
-		$sql .= " AND v.entity IN (".getEntity('siteversion').")";
-		$resql = $this->db->query($sql);
-		if (!$resql) {
-			$this->error = $this->db->lasterror();
-			$this->errors[] = $this->error;
-			return false;
-		}
-		$obj = $this->db->fetch_object($resql);
-		$this->db->free($resql);
-		if (!$obj || (int) $obj->fk_typesite != $this->getTypeSite()) {
-			$langs->load("nssuiviprod@nssuiviprod");
-			$this->error = $langs->trans('ErrorVersionNotOfSiteType');
-			$this->errors[] = $this->error;
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Return the situation of the installed version (see SiteVersion::getSituations())
-	 *
-	 * @return	string		'uptodate', 'update', 'obsolete', 'security' or 'unknown' (no version)
+	 * @return	string		self::SITUATION_xxx
 	 */
 	public function getSituation()
 	{
-		dol_include_once('/nssuiviprod/class/siteversion.class.php');
-
-		if (empty($this->fk_siteversion)) {
-			return SiteVersion::SITUATION_UNKNOWN;
-		}
-		$situations = SiteVersion::getSituations($this->db);
-
-		return isset($situations[(int) $this->fk_siteversion]) ? $situations[(int) $this->fk_siteversion] : SiteVersion::SITUATION_UNKNOWN;
+		return self::computeSituation($this->getTypeSite(), (string) $this->version);
 	}
 
 	/**
-	 * Restrict the list of the versions of the field fk_siteversion to the type of the site of the URL
+	 * Return the situation of an installed version: up to date if it is the current version of the type of site (setup
+	 * of the module) or a higher one, update available if it is lower
 	 *
 	 * @param	int		$fk_typesite	Id of the type of site
-	 * @return	void
+	 * @param	string	$version		Installed version
+	 * @return	string					self::SITUATION_xxx
 	 */
-	public function setVersionFilter($fk_typesite)
+	public static function computeSituation($fk_typesite, $version)
 	{
-		$this->versionfilter_typesite = (int) $fk_typesite;
-		if (!empty($this->fields['fk_siteversion'])) {
-			$this->fields['fk_siteversion']['type'] = 'integer:SiteVersion:nssuiviprod/class/siteversion.class.php:1:((t.status:=:1) AND (t.fk_typesite:=:'.((int) $fk_typesite).'))';
+		if (trim((string) $version) === '') {
+			return self::SITUATION_UNKNOWN;
 		}
+		$current = self::getCurrentVersion($fk_typesite);
+		if ($current === '') {
+			return self::SITUATION_NOCURRENT;
+		}
+
+		return (self::compareVersions($version, $current) < 0 ? self::SITUATION_UPDATE : self::SITUATION_UPTODATE);
+	}
+
+	/**
+	 * Return the current version of a type of site given in the setup of the module (format x.y.z)
+	 *
+	 * @param	int		$fk_typesite	Id of the type of site
+	 * @return	string					Current version, '' if not set (or not in the format x.y.z)
+	 */
+	public static function getCurrentVersion($fk_typesite)
+	{
+		$current = trim(getDolGlobalString('NSSUIVIPROD_CURRENT_VERSION_'.((int) $fk_typesite)));
+
+		return (preg_match('/^\d+\.\d+\.\d+$/', $current) ? $current : '');
+	}
+
+	/**
+	 * Compare two version numbers ("20.0.3", "v6.4", ...)
+	 *
+	 * @param	string	$a		Version number
+	 * @param	string	$b		Version number
+	 * @return	int				<0 if $a is lower, 0 if equal, >0 if $a is higher
+	 */
+	public static function compareVersions($a, $b)
+	{
+		$a = preg_replace('/^[^0-9]+/', '', trim((string) $a));
+		$b = preg_replace('/^[^0-9]+/', '', trim((string) $b));
+
+		return version_compare($a, $b);
+	}
+
+	/**
+	 * Return the list of the situations, with their label (filter of the lists)
+	 *
+	 * @return	array<string,string>	Code => label
+	 */
+	public static function getSituationLabels()
+	{
+		global $langs;
+
+		$langs->load("nssuiviprod@nssuiviprod");
+
+		return array(
+			self::SITUATION_UPTODATE => $langs->trans('SituationUpToDate'),
+			self::SITUATION_UPDATE => $langs->trans('SituationUpdate'),
+			self::SITUATION_UNKNOWN => $langs->trans('SituationUnknown'),
+			self::SITUATION_NOCURRENT => $langs->trans('SituationNoCurrent'),
+		);
+	}
+
+	/**
+	 * Return the badge of a situation
+	 *
+	 * @param	string	$situation		Situation (self::SITUATION_xxx)
+	 * @return	string					HTML badge
+	 */
+	public static function getSituationBadge($situation)
+	{
+		$labels = self::getSituationLabels();
+		$types = array(
+			self::SITUATION_UPTODATE => 'success',
+			self::SITUATION_UPDATE => 'warning',
+			self::SITUATION_UNKNOWN => 'secondary',
+			self::SITUATION_NOCURRENT => 'secondary',
+		);
+		if (!isset($types[$situation])) {
+			$situation = self::SITUATION_UNKNOWN;
+		}
+
+		return dolGetBadge($labels[$situation], '', $types[$situation]);
+	}
+
+	/**
+	 * Return the ids of the URLs having a situation (filter of the lists: the situation is computed, not stored)
+	 *
+	 * @param	DoliDB	$db				Database handler
+	 * @param	string	$situation		Situation (self::SITUATION_xxx)
+	 * @return	int[]					Ids of the URLs
+	 */
+	public static function getIdsBySituation($db, $situation)
+	{
+		$ids = array();
+		$sql = "SELECT u.rowid, u.version, s.fk_typesite FROM ".$db->prefix()."nssuiviprod_siteurl as u";
+		$sql .= " INNER JOIN ".$db->prefix()."nssuiviprod_site as s ON s.rowid = u.fk_site";
+		$sql .= " WHERE u.entity IN (".getEntity('siteurl').")";
+		$resql = $db->query($sql);
+		while ($resql && ($obj = $db->fetch_object($resql))) {
+			if (self::computeSituation((int) $obj->fk_typesite, (string) $obj->version) == $situation) {
+				$ids[] = (int) $obj->rowid;
+			}
+		}
+
+		return $ids;
 	}
 
 	/**
@@ -1256,9 +1303,7 @@ class SiteUrl extends CommonObject
 	}
 
 	/**
-	 * Return HTML string to put an input field into a page (date of the last check: today by default; installed
-	 * version: button "+" always shown, even when the card is opened from another page with a backtopage, where Dolibarr
-	 * hides it; type of site prefilled)
+	 * Return HTML string to put an input field into a page (date of the last check: today by default)
 	 *
 	 * @param	array<string,mixed>	$val			Array of properties for field to show
 	 * @param	string				$key			Key of attribute
@@ -1272,37 +1317,12 @@ class SiteUrl extends CommonObject
 	 */
 	public function showInputField($val, $key, $value, $moreparam = '', $keysuffix = '', $keyprefix = '', $morecss = 0, $nonewbutton = 0)
 	{
-		global $user, $langs;
-
 		// Date of the last check: today by default when the card is saved (create and edit), unless changed in the form
 		if ($key == 'date_check' && !preg_match('/search_/', $keyprefix) && !GETPOSTISSET($keyprefix.$key.$keysuffix.'day')) {
 			$value = dol_now();
 		}
 
-		if ($key != 'fk_siteversion' || preg_match('/search_/', $keyprefix) || !empty($val['disabled'])) {
-			return parent::showInputField($val, $key, $value, $moreparam, $keysuffix, $keyprefix, $morecss, $nonewbutton);
-		}
-
-		$out = parent::showInputField($val, $key, $value, $moreparam, $keysuffix, $keyprefix, $morecss, 1);
-		if (empty($nonewbutton) && $user->hasRight('nssuiviprod', 'siteversion', 'write')) {
-			// Back to this card with the new version selected (the original backtopage is kept)
-			$params = array();
-			foreach (array('action' => 'aZ09', 'id' => 'int', 'fk_site' => 'int', 'backtopage' => 'alpha', 'backtopageforcancel' => 'alpha') as $param => $check) {
-				if (GETPOSTISSET($param) && GETPOST($param, $check) !== '') {
-					$params[$param] = GETPOST($param, $check);
-				}
-			}
-			$backurl = $_SERVER['PHP_SELF'].'?'.http_build_query($params);
-			$url = dol_buildpath('/nssuiviprod/siteversion_card.php', 1).'?action=create';
-			if ($this->versionfilter_typesite > 0) {
-				$url .= '&fk_typesite='.((int) $this->versionfilter_typesite);
-			}
-			$url .= '&backtopage='.urlencode($backurl.'&'.$keyprefix.$key.$keysuffix.'=__ID__');
-			$url .= '&backtopageforcancel='.urlencode($backurl);
-			$out .= '<a class="butActionNew" title="'.dol_escape_htmltag($langs->trans('NewSiteVersion')).'" href="'.$url.'"><span class="fa fa-plus-circle valignmiddle"></span></a>';
-		}
-
-		return $out;
+		return parent::showInputField($val, $key, $value, $moreparam, $keysuffix, $keyprefix, $morecss, $nonewbutton);
 	}
 
 	/**
@@ -1566,7 +1586,6 @@ class SiteUrl extends CommonObject
 	}
 }
 
-
 require_once DOL_DOCUMENT_ROOT.'/core/class/commonobjectline.class.php';
 
 /**
@@ -1599,7 +1618,6 @@ class SiteUrlLine extends CommonObjectLine
 	 * 								0=No test on entity, 1=Test with field entity in local table, 'field@table'=Test entity into the field@table (example 'fk_soc@societe')
 	 */
 	public $ismultientitymanaged = 0;
-
 
 	/**
 	 * Constructor

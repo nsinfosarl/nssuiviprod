@@ -20,7 +20,6 @@ ALTER TABLE llx_nssuiviprod_siteurl ADD INDEX idx_nssuiviprod_siteurl_fk_site (f
 ALTER TABLE llx_nssuiviprod_siteurl ADD INDEX idx_nssuiviprod_siteurl_fk_typeurl (fk_typeurl);
 ALTER TABLE llx_nssuiviprod_siteurl ADD INDEX idx_nssuiviprod_siteurl_entity (entity);
 ALTER TABLE llx_nssuiviprod_siteurl ADD INDEX idx_nssuiviprod_siteurl_environment (environment);
-ALTER TABLE llx_nssuiviprod_siteurl ADD INDEX idx_nssuiviprod_siteurl_fk_siteversion (fk_siteversion);
 -- END MODULEBUILDER INDEXES
 
 -- Hors balises MODULEBUILDER (non regenere par ModuleBuilder)

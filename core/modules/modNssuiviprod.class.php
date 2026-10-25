@@ -149,21 +149,6 @@ class modNssuiviprod extends DolibarrModules
 		$this->rights[$r][4] = 'site';
 		$this->rights[$r][5] = 'delete';
 		$r++;
-		$this->rights[$r][0] = $this->numero . sprintf('%02d', (1 * 10) + 0 + 1);
-		$this->rights[$r][1] = 'Read the versions referential';
-		$this->rights[$r][4] = 'siteversion';
-		$this->rights[$r][5] = 'read';
-		$r++;
-		$this->rights[$r][0] = $this->numero . sprintf('%02d', (1 * 10) + 1 + 1);
-		$this->rights[$r][1] = 'Create/Update the versions referential';
-		$this->rights[$r][4] = 'siteversion';
-		$this->rights[$r][5] = 'write';
-		$r++;
-		$this->rights[$r][0] = $this->numero . sprintf('%02d', (1 * 10) + 2 + 1);
-		$this->rights[$r][1] = 'Delete versions of the referential';
-		$this->rights[$r][4] = 'siteversion';
-		$this->rights[$r][5] = 'delete';
-		$r++;
 		$this->rights[$r][0] = $this->numero . sprintf('%02d', (2 * 10) + 0 + 1);
 		$this->rights[$r][1] = 'Access to the setup of the module';
 		$this->rights[$r][4] = 'setup';
@@ -295,56 +280,6 @@ class modNssuiviprod extends DolibarrModules
 			'object' => 'SitePlugin'
 		);
 		/* END MODULEBUILDER LEFTMENU SITEPLUGIN */
-		/* BEGIN MODULEBUILDER LEFTMENU SITEVERSION */
-		$this->menu[$r++] = array(
-			'fk_menu' => 'fk_mainmenu=nssuiviprod',
-			'type' => 'left',
-			'titre' => 'SiteVersions',
-			'prefix' => img_picto('', 'fa-code-branch', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #14182B"'),
-			'mainmenu' => 'nssuiviprod',
-			'leftmenu' => 'siteversion',
-			'url' => '/nssuiviprod/siteversion_list.php',
-			'langs' => 'nssuiviprod@nssuiviprod',
-			'position' => 1000 + $r,
-			'enabled' => 'isModEnabled("nssuiviprod")',
-			'perms' => '$user->hasRight("nssuiviprod", "siteversion", "read")',
-			'target' => '',
-			'user' => 0,	// Internal users only
-			'object' => 'SiteVersion'
-		);
-		$this->menu[$r++] = array(
-			'fk_menu' => 'fk_mainmenu=nssuiviprod,fk_leftmenu=siteversion',
-			'type' => 'left',
-			'titre' => 'NewSiteVersion',
-			'prefix' => img_picto('', 'fa-plus-circle', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #14182B"'),
-			'mainmenu' => 'nssuiviprod',
-			'leftmenu' => 'nssuiviprod_siteversion_new',
-			'url' => '/nssuiviprod/siteversion_card.php?action=create',
-			'langs' => 'nssuiviprod@nssuiviprod',
-			'position' => 1000 + $r,
-			'enabled' => 'isModEnabled("nssuiviprod")',
-			'perms' => '$user->hasRight("nssuiviprod", "siteversion", "write")',
-			'target' => '',
-			'user' => 0,	// Internal users only
-			'object' => 'SiteVersion'
-		);
-		$this->menu[$r++] = array(
-			'fk_menu' => 'fk_mainmenu=nssuiviprod,fk_leftmenu=siteversion',
-			'type' => 'left',
-			'titre' => 'ListSiteVersion',
-			'prefix' => img_picto('', 'fa-list', 'class="pictofixedwidth valignmiddle marginrightonlyshort" style="color: #14182B"'),
-			'mainmenu' => 'nssuiviprod',
-			'leftmenu' => 'nssuiviprod_siteversion_list',
-			'url' => '/nssuiviprod/siteversion_list.php',
-			'langs' => 'nssuiviprod@nssuiviprod',
-			'position' => 1000 + $r,
-			'enabled' => 'isModEnabled("nssuiviprod")',
-			'perms' => '$user->hasRight("nssuiviprod", "siteversion", "read")',
-			'target' => '',
-			'user' => 0,	// Internal users only
-			'object' => 'SiteVersion'
-		);
-		/* END MODULEBUILDER LEFTMENU SITEVERSION */
 		/* BEGIN MODULEBUILDER LEFTMENU SETUP */
 		$this->menu[$r++] = array(
 			'fk_menu' => 'fk_mainmenu=nssuiviprod',

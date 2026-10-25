@@ -23,7 +23,6 @@
  *    \brief      Page to create/edit/view siteurl
  */
 
-
 // General defined Options
 //if (! defined('CSRFCHECK_WITH_TOKEN'))     define('CSRFCHECK_WITH_TOKEN', '1');					// Force use of CSRF protection with tokens even for GET
 //if (! defined('MAIN_AUTHENTICATION_MODE')) define('MAIN_AUTHENTICATION_MODE', 'aloginmodule');	// Force authentication handler
@@ -44,7 +43,6 @@
 //if (! defined('NOSESSION'))                define('NOSESSION', '1');						// On CLI mode, no need to use web sessions
 //if (! defined('NOSTYLECHECK'))             define('NOSTYLECHECK', '1');					// Do not check style html tag into posted data
 //if (! defined('NOTOKENRENEWAL'))           define('NOTOKENRENEWAL', '1');					// Do not roll the Anti CSRF token (used if MAIN_SECURITY_CSRF_WITH_TOKEN is on)
-
 
 // Load Dolibarr environment
 $res = 0;
@@ -123,7 +121,6 @@ $soc = null;
 // Fetch optionals attributes and labels
 $extrafields->fetch_name_optionals_label($object->table_element);
 
-
 $search_array_options = $extrafields->getOptionalsFromPost($object->table_element, '', 'search_');
 
 // Initialize array of search criteria
@@ -141,14 +138,6 @@ if (empty($action) && empty($id) && empty($ref)) {
 
 // Load object
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be 'include', not 'include_once'.
-
-// Installed version: only the versions of the type of the site of the URL
-$tmpsiteid = ($object->id > 0 ? (int) $object->fk_site : GETPOSTINT('fk_site'));
-if ($tmpsiteid > 0) {
-	$tmpurlsite = new SiteUrl($db);
-	$tmpurlsite->fk_site = $tmpsiteid;
-	$object->setVersionFilter($tmpurlsite->getTypeSite());
-}
 
 // There is several ways to check permission.
 // Set $enablepermissioncheck to 1 to enable a minimum low level of checks
@@ -184,7 +173,6 @@ if (!$permissiontoread) {
 }
 
 $error = 0;
-
 
 /*
  * Actions
@@ -243,8 +231,6 @@ if (empty($reshook)) {
 	include DOL_DOCUMENT_ROOT.'/core/actions_sendmails.inc.php';
 }
 
-
-
 /*
  * View
  */
@@ -276,7 +262,6 @@ llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-nssuiviprod page-car
 // });
 // </script>';
 
-
 // Part to create
 if ($action == 'create') {
 	if (empty($permissiontoadd)) {
@@ -299,7 +284,6 @@ if ($action == 'create') {
 	}
 
 	print dol_get_fiche_head(array(), '');
-
 
 	print '<table class="border centpercent tableforfieldcreate">'."\n";
 
@@ -414,7 +398,6 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	// Print form confirm
 	print $formconfirm;
 
-
 	// Object card
 	// ------------------------------------------------------------
 	$linkback = '<a href="'.dol_buildpath('/nssuiviprod/siteurl_list.php', 1).'?restore_lastsearch_values=1'.(!empty($socid) ? '&socid='.$socid : '').'">'.$langs->trans("BackToList").'</a>';
@@ -453,9 +436,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	*/
 	$morehtmlref .= '</div>';
 
-
 	dol_banner_tab($object, 'ref', $linkback, 1, 'ref', 'ref', $morehtmlref);
-
 
 	print '<div class="fichecenter">';
 	print '<div class="fichehalfleft">';
@@ -478,7 +459,6 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	print '<div class="clearboth"></div>';
 
 	print dol_get_fiche_end();
-
 
 	/*
 	 * Lines
@@ -533,7 +513,6 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print "</form>\n";
 	}
 
-
 	// Buttons for actions
 
 	if ($action != 'presend' && $action != 'editline') {
@@ -552,7 +531,6 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 			// Modify
 			print dolGetButtonAction('', $langs->trans('Modify'), 'default', $_SERVER["PHP_SELF"].'?id='.$object->id.'&action=edit&token='.newToken(), '', $permissiontoadd);
-
 
 			// Clone
 			if ($permissiontoadd) {
@@ -589,7 +567,6 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		}
 		print '</div>'."\n";
 	}
-
 
 	// Select mail models is same action as presend
 	if (GETPOST('modelselected')) {

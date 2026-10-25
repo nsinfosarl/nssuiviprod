@@ -93,7 +93,6 @@ function nssuiviprodExtrafieldsPrepareHead(&$total = 0)
 		'site' => array('Sites', 'fa-globe_fas_#3879B2'),
 		'siteurl' => array('SiteUrls', 'fa-link_fas_#22A7D8'),
 		'siteplugin' => array('SitePlugins', 'fa-puzzle-piece_fas_#5A2D82'),
-		'siteversion' => array('SiteVersions', 'fa-code-branch_fas_#14182B'),
 		// END OBJECTS WITH EXTRAFIELDS
 	);
 

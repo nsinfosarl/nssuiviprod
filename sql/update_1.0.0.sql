@@ -68,8 +68,7 @@ ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN dolistore_label varchar(255);
 -- 1.0.0: plugins installed on an URL of the site (instance)
 ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN fk_siteurl integer;
 
--- 1.0.0: installed version and date of the last check on the URLs (instances), no more on the sites
-ALTER TABLE llx_nssuiviprod_siteurl ADD COLUMN fk_siteversion integer;
+-- 1.0.0: date of the last check on the URLs (instances), no more on the sites
 ALTER TABLE llx_nssuiviprod_siteurl ADD COLUMN date_check date;
 
 -- 1.0.0: order of the URLs of a site
@@ -78,3 +77,8 @@ ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN dolistore_ref varchar(128);
 
 -- URL label optional (the tabs of the plugins show the icon of the environment)
 ALTER TABLE llx_nssuiviprod_siteurl MODIFY COLUMN label varchar(255) NULL;
+
+-- 23.0.1: installed version of the URLs as a number (x.y.z), compared to the current version of the type of site of the
+-- setup; the versions referential is removed: the number of the former version of each URL is kept
+ALTER TABLE llx_nssuiviprod_siteurl ADD COLUMN version varchar(64);
+UPDATE llx_nssuiviprod_siteurl SET version = (SELECT v.ref FROM llx_nssuiviprod_siteversion as v WHERE v.rowid = llx_nssuiviprod_siteurl.fk_siteversion) WHERE (version IS NULL OR version = '') AND fk_siteversion > 0;

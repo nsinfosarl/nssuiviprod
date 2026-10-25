@@ -95,7 +95,6 @@ include_once DOL_DOCUMENT_ROOT.'/core/class/html.formprojet.class.php';
 dol_include_once('/nssuiviprod/class/site.class.php');
 dol_include_once('/nssuiviprod/class/siteurl.class.php');
 dol_include_once('/nssuiviprod/class/siteplugin.class.php');
-dol_include_once('/nssuiviprod/class/siteversion.class.php');
 dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
 
 // Load translation files required by the page
@@ -254,7 +253,7 @@ if (empty($reshook)) {
 		$siteurl->url = trim(GETPOST('url_url', 'alphanohtml'));
 		$siteurl->label = trim(GETPOST('url_label', 'alphanohtml'));
 		$siteurl->environment = (in_array(GETPOSTINT('url_environment'), array(1, 2, 3)) ? GETPOSTINT('url_environment') : 1);
-		$siteurl->fk_siteversion = (GETPOSTINT('url_fk_siteversion') > 0 ? GETPOSTINT('url_fk_siteversion') : null);
+		$siteurl->version = dol_substr(trim(GETPOST('url_version', 'alphanohtml')), 0, 64);
 		$siteurl->date_check = dol_mktime(0, 0, 0, GETPOSTINT('url_date_checkmonth'), GETPOSTINT('url_date_checkday'), GETPOSTINT('url_date_checkyear'));
 		if (!array_key_exists($siteurl->fk_typeurl, nssuiviprodGetDictionary($db, 'c_nssuiviprod_typeurl'))) {
 			$siteurl->fk_typeurl = 0;	// Type of URL of the dictionary only (active types)
@@ -340,7 +339,7 @@ if (empty($reshook)) {
 		}
 		$data = (($content === false || $content === '') ? null : json_decode($content, true));
 		$instanceurl = (is_array($data) && !empty($data['instance']['url'])) ? trim((string) $data['instance']['url']) : '';
-		$dolversion = (is_array($data) && !empty($data['instance']['dolibarr_version'])) ? dol_substr(trim((string) $data['instance']['dolibarr_version']), 0, 128) : '';
+		$dolversion = (is_array($data) && !empty($data['instance']['dolibarr_version'])) ? dol_substr(trim((string) $data['instance']['dolibarr_version']), 0, 64) : '';
 		$importerror = '';
 		if ($content === false || $content === '') {
 			$importerror = $langs->trans('ErrorPluginJsonNoFile');
@@ -357,34 +356,12 @@ if (empty($reshook)) {
 
 		$details = array();
 		$urlcreated = 0;
-		$versioncreated = 0;
 		$db->begin();
 		$tmpurl = new SiteUrl($db);
-		// Exact Dolibarr version of the file in the referential of the type of the site (created if needed)
-		$fk_siteversion = 0;
-		if (!$importerror && $dolversion !== '' && (int) $object->fk_typesite > 0) {
-			$resql = $db->query("SELECT v.rowid FROM ".$db->prefix()."nssuiviprod_siteversion as v WHERE v.fk_typesite = ".((int) $object->fk_typesite)." AND v.ref = '".$db->escape($dolversion)."' AND v.entity IN (".getEntity('siteversion').")");
-			if ($resql && ($obj = $db->fetch_object($resql))) {
-				$fk_siteversion = (int) $obj->rowid;
-			} else {
-				$tmpversion = new SiteVersion($db);
-				$tmpversion->ref = $dolversion;
-				$tmpversion->fk_typesite = (int) $object->fk_typesite;
-				$tmpversion->state = SiteVersion::STATE_SUPPORTED;
-				$tmpversion->status = SiteVersion::STATUS_VALIDATED;
-				$fk_siteversion = $tmpversion->create($user);
-				if ($fk_siteversion > 0) {
-					$versioncreated = 1;	// Message after the commit
-					$details[] = $langs->transnoentitiesnoconv('UrlJsonVersionCreated', $dolversion);
-				} else {
-					$importerror = ($tmpversion->error ? $tmpversion->error : $langs->trans('Error').' : '.$langs->trans('SiteVersion').' '.dol_escape_htmltag($dolversion));
-				}
-			}
-		}
 		// URL of the instance: updated, or created with the type and the environment chosen in the form
 		if (!$importerror) {
 			if ($fk_siteurl > 0 && $tmpurl->fetch($fk_siteurl) > 0) {
-				$tmpurl->fk_siteversion = ($fk_siteversion > 0 ? $fk_siteversion : $tmpurl->fk_siteversion);
+				$tmpurl->version = ($dolversion !== '' ? $dolversion : $tmpurl->version);	// Exact Dolibarr version of the file
 				$tmpurl->date_check = dol_now();
 				if ($tmpurl->update($user) > 0) {
 					$details[] = $langs->transnoentitiesnoconv('UrlJsonUrlUpdated', $tmpurl->getDisplayLabel());
@@ -400,7 +377,7 @@ if (empty($reshook)) {
 					$tmpurl->fk_typeurl = (int) key(nssuiviprodGetDictionary($db, 'c_nssuiviprod_typeurl'));	// First active type of URL
 				}
 				$tmpurl->environment = (in_array(GETPOSTINT('import_environment'), array(1, 2, 3)) ? GETPOSTINT('import_environment') : 1);
-				$tmpurl->fk_siteversion = ($fk_siteversion > 0 ? $fk_siteversion : null);
+				$tmpurl->version = $dolversion;	// Exact Dolibarr version of the file
 				$tmpurl->date_check = dol_now();
 				if ($tmpurl->create($user) > 0) {
 					$urlcreated = 1;
@@ -429,14 +406,8 @@ if (empty($reshook)) {
 		}
 		$db->commit();
 
-		if ($fk_siteversion > 0) {
+		if ($dolversion !== '') {
 			array_unshift($details, $langs->transnoentitiesnoconv('UrlJsonVersionSet', $dolversion));
-		}
-		if ($versioncreated) {
-			setEventMessages($langs->trans('UrlJsonVersionCreated', dol_escape_htmltag($dolversion)), null, 'mesgs');
-		}
-		if ($dolversion !== '' && $fk_siteversion <= 0) {
-			setEventMessages($langs->trans('WarningUrlJsonNoVersion', dol_escape_htmltag($dolversion)), null, 'warnings');	// Site without type of site
 		}
 		array_unshift($details, $langs->transnoentitiesnoconv('NssuiviprodEvtImportInstance', $instanceurl));
 		array_unshift($details, $langs->transnoentitiesnoconv('NssuiviprodEvtImportFile', GETPOST('fromlocal', 'alpha') ? SitePlugin::getLocalJsonFilePath() : dol_sanitizeFileName((string) $_FILES['pluginjsonfile']['name'])));
@@ -448,7 +419,7 @@ if (empty($reshook)) {
 			$details[] = $langs->transnoentitiesnoconv('PluginJsonMissing', count($result['missing'])).' : '.implode(', ', $result['missing']);
 		}
 		nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtPluginsImported', $tmpurl->getDisplayLabel()), $details);
-		setEventMessages($langs->trans($urlcreated ? 'UrlJsonUrlCreated' : 'UrlJsonUrlUpdated', dol_escape_htmltag($tmpurl->getDisplayLabel())).($fk_siteversion > 0 ? ' - '.$langs->trans('UrlJsonVersionSet', dol_escape_htmltag($dolversion)) : ''), null, 'mesgs');
+		setEventMessages($langs->trans($urlcreated ? 'UrlJsonUrlCreated' : 'UrlJsonUrlUpdated', dol_escape_htmltag($tmpurl->getDisplayLabel())).($dolversion !== '' ? ' - '.$langs->trans('UrlJsonVersionSet', dol_escape_htmltag($dolversion)) : ''), null, 'mesgs');
 		setEventMessages($langs->trans('PluginJsonImported', $result['created'], $result['updated'], $result['linked']), null, 'mesgs');
 		if (count($result['added'])) {
 			setEventMessages($langs->trans('PluginJsonAdded', count($result['added'])).' : '.dol_escape_htmltag(implode(', ', $result['added'])), null, 'warnings');
@@ -956,20 +927,8 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	}
 	$typeurls = nssuiviprodGetDictionary($db, 'c_nssuiviprod_typeurl');
 	$backtocard = urlencode($_SERVER['PHP_SELF'].'?id='.$object->id);
-	// Versions of the type of the site (installed version of the URLs) and latest one
-	$versions = array();
-	$sql = "SELECT v.rowid, v.ref FROM ".$db->prefix()."nssuiviprod_siteversion as v";
-	$sql .= " WHERE v.fk_typesite = ".((int) $object->fk_typesite)." AND v.status = 1 AND v.entity IN (".getEntity('siteversion').")";
-	$sql .= " ORDER BY v.ref DESC";
-	$resql = $db->query($sql);
-	if ($resql) {
-		while ($obj = $db->fetch_object($resql)) {
-			$versions[(int) $obj->rowid] = $obj->ref;
-		}
-		$db->free($resql);
-	}
-	$latestbytype = SiteVersion::getLatestByType($db);
-	$latest = (!empty($latestbytype[(int) $object->fk_typesite]) ? $latestbytype[(int) $object->fk_typesite] : null);
+	// Current version of the type of the site (setup of the module): reference of the situation of the URLs
+	$currentversion = SiteUrl::getCurrentVersion((int) $object->fk_typesite);
 
 	print '<br><a name="siteurls"></a>';
 	print load_fiche_titre($langs->trans('SiteUrls').'<span class="badge marginleftonlyshort">'.count($urls).'</span>', '', $siteurl->picto);
@@ -1016,11 +975,11 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<td class="tdoverflowmax150">'.dol_escape_htmltag(isset($typeurls[(int) $tmpurl->fk_typeurl]) ? $typeurls[(int) $tmpurl->fk_typeurl] : '').'</td>';
 		print '<td class="tdoverflowmax400">'.dol_print_url($tmpurl->url, '_blank', 0, 1).'</td>';
 		print '<td class="tdoverflowmax200">'.dol_escape_htmltag($tmpurl->label).'</td>';
-		// Installed version, situation (latest version of the type of the site when it is not the installed one)
-		print '<td class="nowraponall">'.dol_escape_htmltag(isset($versions[(int) $tmpurl->fk_siteversion]) ? $versions[(int) $tmpurl->fk_siteversion] : '').'</td>';
-		print '<td class="center nowraponall">'.SiteVersion::getSituationBadge($tmpurl->getSituation());
-		if ($latest && !SiteVersion::isLatest($db, $latest, (int) $tmpurl->fk_siteversion)) {
-			print '<br><span class="opacitymedium small">'.$langs->trans('LatestVersion').' : '.dol_escape_htmltag($latest['ref']).'</span>';
+		// Installed version, situation (current version of the type of the site when it is not the installed one)
+		print '<td class="nowraponall">'.dol_escape_htmltag((string) $tmpurl->version).'</td>';
+		print '<td class="center nowraponall">'.SiteUrl::getSituationBadge(SiteUrl::computeSituation((int) $object->fk_typesite, (string) $tmpurl->version));
+		if ($currentversion !== '' && trim((string) $tmpurl->version) !== '' && SiteUrl::compareVersions($tmpurl->version, $currentversion) != 0) {
+			print '<br><span class="opacitymedium small">'.$langs->trans('NssuiviprodCurrentVersion').' : '.dol_escape_htmltag($currentversion).'</span>';
 		}
 		print '</td>';
 		print '<td class="center nowraponall">'.dol_print_date($tmpurl->date_check, 'day').'</td>';
@@ -1047,14 +1006,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		print '<td>'.$form->selectarray('url_fk_typeurl', $typeurls, GETPOSTINT('url_fk_typeurl'), 1, 0, 0, '', 0, 0, 0, '', 'maxwidth200').'</td>';
 		print '<td><input type="text" name="url_url" class="minwidth300 widthcentpercentminusx" placeholder="https://" value="'.dol_escape_htmltag(GETPOST('url_url', 'alphanohtml')).'"></td>';
 		print '<td><input type="text" name="url_label" class="minwidth150" value="'.dol_escape_htmltag(GETPOST('url_label', 'alphanohtml')).'"></td>';
-		print '<td class="nowraponall">'.$form->selectarray('url_fk_siteversion', $versions, GETPOSTINT('url_fk_siteversion'), 1, 0, 0, '', 0, 0, 0, '', 'maxwidth100');
-		if ($user->hasRight('nssuiviprod', 'siteversion', 'write')) {
-			// Button "+": creation of a version of the type of the site, then back here with the new version selected
-			$backtoversion = $_SERVER['PHP_SELF'].'?id='.$object->id.'&url_fk_siteversion=__ID__#siteurls';
-			print '<a href="'.dol_buildpath('/nssuiviprod/siteversion_card.php', 1).'?action=create&fk_typesite='.((int) $object->fk_typesite).'&backtopage='.urlencode($backtoversion).'&backtopageforcancel='.urlencode($_SERVER['PHP_SELF'].'?id='.$object->id.'#siteurls').'">';
-			print '<span class="fa fa-plus-circle valignmiddle paddingleft" title="'.dol_escape_htmltag($langs->trans('NewSiteVersion')).'"></span></a>';
-		}
-		print '</td>';
+		print '<td><input type="text" name="url_version" class="maxwidth100" placeholder="x.y.z" value="'.dol_escape_htmltag(GETPOST('url_version', 'alphanohtml')).'"></td>';
 		print '<td></td>';
 		print '<td class="center nowraponall">'.$form->selectDate((GETPOSTISSET('url_date_checkday') ? dol_mktime(12, 0, 0, GETPOSTINT('url_date_checkmonth'), GETPOSTINT('url_date_checkday'), GETPOSTINT('url_date_checkyear')) : dol_now()), 'url_date_check', 0, 0, 1, '', 1, 0).'</td>';
 		print '<td><span class="opacitymedium small">'.$langs->trans('UrlComplementOnCard').'</span></td>';
@@ -1245,16 +1197,18 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			}
 			print '</td>';
 			if ($withproduct) {
-				print '<td class="tdoverflowmax200">'.($productref !== '' ? $tmpproduct->getNomUrl(1) : '').'</td>';
+				print '<td class="tdoverflowmax150">'.($productref !== '' ? $tmpproduct->getNomUrl(1) : '').'</td>';
 			}
-			print '<td class="tdoverflowmax400">'.dol_escape_htmltag($tmpplugin->label).(isset($importstates[(int) $tmpplugin->id]) ? SitePlugin::getImportStateBadge($importstates[(int) $tmpplugin->id]) : '');
+			// Name and description: the column adapts its width (400 px at most), the description stays on one line with
+			// "..." when it is too long (full text in the tooltip)
+			print '<td class="minwidth200 wordbreak" style="max-width: 400px">'.dol_escape_htmltag($tmpplugin->label).(isset($importstates[(int) $tmpplugin->id]) ? SitePlugin::getImportStateBadge($importstates[(int) $tmpplugin->id]) : '');
 			// Description of the module (JSON file of the external modules), full text in the tooltip
 			$tmpdesc = trim(dol_string_nohtmltag((string) $tmpplugin->module_description, 1));
 			if ($tmpdesc !== '') {
-				print '<br><span class="opacitymedium small" title="'.dol_escape_htmltag($tmpdesc).'">'.dol_escape_htmltag(dol_trunc($tmpdesc, 120)).'</span>';
+				print '<span class="opacitymedium small" style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="'.dol_escape_htmltag($tmpdesc).'">'.dol_escape_htmltag(dol_trunc($tmpdesc, 300)).'</span>';
 			}
 			print '</td>';
-			print '<td class="tdoverflowmax150">'.dol_escape_htmltag((string) $tmpplugin->publisher).'</td>';
+			print '<td class="tdoverflowmax100" title="'.dol_escape_htmltag((string) $tmpplugin->publisher).'">'.dol_escape_htmltag((string) $tmpplugin->publisher).'</td>';
 			print '<td class="center width25">'.$tmpplugin->getLinks('dolistore').'</td>';
 			print '<td class="center width25">'.$tmpplugin->getLinks('publisher').'</td>';
 			print '<td class="nowraponall">'.dol_escape_htmltag($tmpplugin->version).'</td>';
@@ -1290,13 +1244,13 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 							$db->free($resql);
 						}
 					}
-					print $form->selectarray('plugin_fk_product', $listproducts, GETPOSTINT('plugin_fk_product'), 1, 0, 0, '', 0, 0, 0, '', 'minwidth200 maxwidth300');
+					print $form->selectarray('plugin_fk_product', $listproducts, GETPOSTINT('plugin_fk_product'), 1, 0, 0, '', 0, 0, 0, '', 'minwidth100 maxwidth200');
 				} else {
-					$form->select_produits(GETPOSTINT('plugin_fk_product'), 'plugin_fk_product', '', 0, 0, -1, 2, '', 0, array(), 0, '1', 0, 'minwidth200 maxwidth300');
+					$form->select_produits(GETPOSTINT('plugin_fk_product'), 'plugin_fk_product', '', 0, 0, -1, 2, '', 0, array(), 0, '1', 0, 'minwidth100 maxwidth200');
 				}
 				print '</td>';
 			}
-			print '<td><input type="text" name="plugin_label" class="minwidth200" value="'.dol_escape_htmltag(GETPOST('plugin_label', 'alphanohtml')).'"></td>';
+			print '<td><input type="text" name="plugin_label" class="minwidth150 widthcentpercentminusx" value="'.dol_escape_htmltag(GETPOST('plugin_label', 'alphanohtml')).'"></td>';
 			print '<td></td>';
 			print '<td></td><td></td>';
 			print '<td><input type="text" name="plugin_version" class="maxwidth100" value="'.dol_escape_htmltag(GETPOST('plugin_version', 'alphanohtml')).'"></td>';

@@ -32,7 +32,7 @@ CREATE TABLE llx_nssuiviprod_siteurl(
 	entity integer DEFAULT 1 NOT NULL, 
 	complement text, 
 	environment integer DEFAULT 1 NOT NULL, 
-	fk_siteversion integer, 
+	version varchar(64), 
 	date_check date, 
 	rang integer DEFAULT 0 NOT NULL
 	-- END MODULEBUILDER FIELDS
