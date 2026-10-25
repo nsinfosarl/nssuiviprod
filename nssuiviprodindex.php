@@ -1,0 +1,325 @@
+<?php
+/* Copyright (C) 2001-2005  Rodolphe Quiedeville    <rodolphe@quiedeville.org>
+ * Copyright (C) 2004-2015  Laurent Destailleur     <eldy@users.sourceforge.net>
+ * Copyright (C) 2005-2012  Regis Houssin           <regis.houssin@inodbox.com>
+ * Copyright (C) 2015       Jean-François Ferry     <jfefe@aternatik.fr>
+ * Copyright (C) 2024       Frédéric France         <frederic.france@free.fr>
+ * Copyright (C) 2026       Nicolas Silobre         <contact@ns-info.fr>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
+ *	\file       nssuiviprod/nssuiviprodindex.php
+ *	\ingroup    nssuiviprod
+ *	\brief      Home page of nssuiviprod top menu
+ */
+
+// Load Dolibarr environment
+$res = 0;
+// Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
+if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
+	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+}
+// Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
+$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+$tmp2 = realpath(__FILE__);
+$i = strlen($tmp) - 1;
+$j = strlen($tmp2) - 1;
+while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
+	$i--;
+	$j--;
+}
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
+	$res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
+}
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
+	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+}
+// Try main.inc.php using relative path
+if (!$res && file_exists("../main.inc.php")) {
+	$res = @include "../main.inc.php";
+}
+if (!$res && file_exists("../../main.inc.php")) {
+	$res = @include "../../main.inc.php";
+}
+if (!$res && file_exists("../../../main.inc.php")) {
+	$res = @include "../../../main.inc.php";
+}
+if (!$res) {
+	die("Include of main fails");
+}
+
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
+
+/**
+ * @var Conf $conf
+ * @var DoliDB $db
+ * @var HookManager $hookmanager
+ * @var Translate $langs
+ * @var User $user
+ */
+
+// Load translation files required by the page
+$langs->loadLangs(array("nssuiviprod@nssuiviprod"));
+
+$action = GETPOST('action', 'aZ09');
+
+$now = dol_now();
+$max = getDolGlobalInt('MAIN_SIZE_SHORTLIST_LIMIT', 5);
+
+// Security check - Protection if external user
+$socid = GETPOSTINT('socid');
+if (!empty($user->socid) && $user->socid > 0) {
+	$action = '';
+	$socid = $user->socid;
+}
+
+// Initialize a technical object to manage hooks. Note that conf->hooks_modules contains array
+//$hookmanager->initHooks(array($object->element.'index'));
+
+// Security check (enable the most restrictive one)
+//if ($user->socid > 0) accessforbidden();
+//if ($user->socid > 0) $socid = $user->socid;
+if (!isModEnabled('nssuiviprod')) {
+	accessforbidden('Module not enabled');
+}
+if (!$user->hasRight('nssuiviprod', 'site', 'read') || $user->socid > 0) {
+	accessforbidden();
+}
+//restrictedArea($user, 'nssuiviprod', 0, 'nssuiviprod_myobject', 'myobject', '', 'rowid');
+//if (empty($user->admin)) {
+//	accessforbidden('Must be admin');
+//}
+
+
+/*
+ * Actions
+ */
+
+// None
+
+
+/*
+ * View
+ */
+
+$form = new Form($db);
+$formfile = new FormFile($db);
+
+llxHeader("", $langs->trans("NssuiviprodArea"), '', '', 0, 0, '', '', '', 'mod-nssuiviprod page-index');
+
+print load_fiche_titre($langs->trans("NssuiviprodArea"), '', 'object_nssuiviprod@nssuiviprod');
+
+print '<div class="fichecenter"><div class="fichethirdleft">';
+
+dol_include_once('/nssuiviprod/class/site.class.php');
+dol_include_once('/nssuiviprod/class/siteversion.class.php');
+dol_include_once('/nssuiviprod/lib/nssuiviprod_site.lib.php');
+
+// URLs (instances) of the sites in service by situation of the installed version, and sites in service by type
+$situations = SiteVersion::getSituations($db);
+$bysituation = array();
+$bytype = array();
+$sql = "SELECT u.fk_siteversion, COUNT(u.rowid) as nb";
+$sql .= " FROM ".$db->prefix()."nssuiviprod_siteurl as u";
+$sql .= " INNER JOIN ".$db->prefix()."nssuiviprod_site as t ON t.rowid = u.fk_site";
+$sql .= " WHERE t.status = ".((int) Site::STATUS_VALIDATED);
+$sql .= " AND u.entity IN (".getEntity('siteurl').")";
+$sql .= " GROUP BY u.fk_siteversion";
+$resql = $db->query($sql);
+if ($resql) {
+	while ($obj = $db->fetch_object($resql)) {
+		$situation = (!empty($obj->fk_siteversion) && isset($situations[(int) $obj->fk_siteversion])) ? $situations[(int) $obj->fk_siteversion] : SiteVersion::SITUATION_UNKNOWN;
+		$bysituation[$situation] = (isset($bysituation[$situation]) ? $bysituation[$situation] : 0) + (int) $obj->nb;
+	}
+	$db->free($resql);
+} else {
+	dol_print_error($db);
+}
+$sql = "SELECT t.fk_typesite, COUNT(t.rowid) as nb FROM ".$db->prefix()."nssuiviprod_site as t";
+$sql .= " WHERE t.status = ".((int) Site::STATUS_VALIDATED)." AND t.entity IN (".getEntity('site').")";
+$sql .= " GROUP BY t.fk_typesite";
+$resql = $db->query($sql);
+if ($resql) {
+	while ($obj = $db->fetch_object($resql)) {
+		$bytype[(int) $obj->fk_typesite] = (int) $obj->nb;
+	}
+	$db->free($resql);
+}
+$urllist = dol_buildpath('/nssuiviprod/site_list.php', 1);
+$urllisturls = dol_buildpath('/nssuiviprod/siteurl_list.php', 1);
+
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><th>'.$langs->trans('UrlsBySituation').'</th><th class="right">'.$langs->trans('Nb').'</th></tr>';
+foreach (array(SiteVersion::SITUATION_SECURITY, SiteVersion::SITUATION_OBSOLETE, SiteVersion::SITUATION_UPDATE, SiteVersion::SITUATION_UPTODATE, SiteVersion::SITUATION_UNKNOWN) as $situation) {
+	print '<tr class="oddeven">';
+	print '<td><a href="'.$urllisturls.'?search_situation='.urlencode($situation).'">'.SiteVersion::getSituationBadge($situation).'</a></td>';
+	print '<td class="right">'.(isset($bysituation[$situation]) ? $bysituation[$situation] : 0).'</td>';
+	print '</tr>';
+}
+print '</table>';
+print '</div>';
+
+print '<br>';
+$typesites = nssuiviprodGetDictionary($db, 'c_nssuiviprod_typesite');
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><th>'.$langs->trans('SitesInServiceByType').'</th><th class="right">'.$langs->trans('Nb').'</th></tr>';
+if (empty($bytype)) {
+	print '<tr class="oddeven"><td colspan="2"><span class="opacitymedium">'.$langs->trans('NoRecordFound').'</span></td></tr>';
+}
+foreach ($bytype as $typeid => $nb) {
+	print '<tr class="oddeven">';
+	print '<td><a href="'.$urllist.'?search_fk_typesite='.((int) $typeid).'&search_status='.((int) Site::STATUS_VALIDATED).'">'.dol_escape_htmltag(isset($typesites[$typeid]) ? $typesites[$typeid] : $langs->trans('Unknown')).'</a></td>';
+	print '<td class="right">'.$nb.'</td>';
+	print '</tr>';
+}
+print '</table>';
+print '</div>';
+
+
+/* BEGIN MODULEBUILDER DRAFT MYOBJECT
+// Draft MyObject
+if (isModEnabled('nssuiviprod') && $user->hasRight('nssuiviprod', 'read')) {
+	$langs->load("orders");
+
+	$sql = "SELECT c.rowid, c.ref, c.ref_client, c.total_ht, c.tva as total_tva, c.total_ttc, s.rowid as socid, s.nom as name, s.client, s.canvas";
+	$sql.= ", s.code_client";
+	$sql.= " FROM ".$db->prefix()."commande as c";
+	$sql.= ", ".$db->prefix()."societe as s";
+	$sql.= " WHERE c.fk_soc = s.rowid";
+	$sql.= " AND c.fk_statut = 0";
+	$sql.= " AND c.entity IN (".getEntity('commande').")";
+	if ($socid)	$sql.= " AND c.fk_soc = ".((int) $socid);
+
+	$resql = $db->query($sql);
+	if ($resql)
+	{
+		$total = 0;
+		$num = $db->num_rows($resql);
+
+		print '<table class="noborder centpercent">';
+		print '<tr class="liste_titre">';
+		print '<th colspan="3">'.$langs->trans("DraftMyObjects").($num?'<span class="badge marginleftonlyshort">'.$num.'</span>':'').'</th></tr>';
+
+		$var = true;
+		if ($num > 0)
+		{
+			$i = 0;
+			while ($i < $num)
+			{
+
+				$obj = $db->fetch_object($resql);
+				print '<tr class="oddeven"><td class="nowrap">';
+
+				$myobjectstatic->id=$obj->rowid;
+				$myobjectstatic->ref=$obj->ref;
+				$myobjectstatic->ref_client=$obj->ref_client;
+				$myobjectstatic->total_ht = $obj->total_ht;
+				$myobjectstatic->total_tva = $obj->total_tva;
+				$myobjectstatic->total_ttc = $obj->total_ttc;
+
+				print $myobjectstatic->getNomUrl(1);
+				print '</td>';
+				print '<td class="nowrap">';
+				print '</td>';
+				print '<td class="right" class="nowrap">'.price($obj->total_ttc).'</td></tr>';
+				$i++;
+				$total += $obj->total_ttc;
+			}
+			if ($total>0)
+			{
+
+				print '<tr class="liste_total"><td>'.$langs->trans("Total").'</td><td colspan="2" class="right">'.price($total)."</td></tr>";
+			}
+		}
+		else
+		{
+
+			print '<tr class="oddeven"><td colspan="3" class="opacitymedium">'.$langs->trans("NoOrder").'</td></tr>';
+		}
+		print "</table><br>";
+
+		$db->free($resql);
+	}
+	else
+	{
+		dol_print_error($db);
+	}
+}
+END MODULEBUILDER DRAFT MYOBJECT */
+
+
+print '</div><div class="fichetwothirdright">';
+
+
+/* BEGIN MODULEBUILDER LASTMODIFIED MYOBJECT
+// Last modified myobject
+if (isModEnabled('nssuiviprod') && $user->hasRight('nssuiviprod', 'read')) {
+	$sql = "SELECT s.rowid, s.ref, s.label, s.date_creation, s.tms";
+	$sql.= " FROM ".$db->prefix()."nssuiviprod_myobject as s";
+	$sql.= " WHERE s.entity IN (".getEntity($myobjectstatic->element).")";
+	//if ($socid)	$sql.= " AND s.rowid = $socid";
+	$sql .= " ORDER BY s.tms DESC";
+	$sql .= $db->plimit($max, 0);
+
+	$resql = $db->query($sql);
+	if ($resql)
+	{
+		$num = $db->num_rows($resql);
+		$i = 0;
+
+		print '<table class="noborder centpercent">';
+		print '<tr class="liste_titre">';
+		print '<th colspan="2">';
+		print $langs->trans("BoxTitleLatestModifiedMyObjects", $max);
+		print '</th>';
+		print '<th class="right">'.$langs->trans("DateModificationShort").'</th>';
+		print '</tr>';
+		if ($num)
+		{
+			while ($i < $num)
+			{
+				$objp = $db->fetch_object($resql);
+
+				$myobjectstatic->id=$objp->rowid;
+				$myobjectstatic->ref=$objp->ref;
+				$myobjectstatic->label=$objp->label;
+				$myobjectstatic->status = $objp->status;
+
+				print '<tr class="oddeven">';
+				print '<td class="nowrap">'.$myobjectstatic->getNomUrl(1).'</td>';
+				print '<td class="right nowrap">';
+				print "</td>";
+				print '<td class="right nowrap">'.dol_print_date($db->jdate($objp->tms), 'day')."</td>";
+				print '</tr>';
+				$i++;
+			}
+
+			$db->free($resql);
+		} else {
+			print '<tr class="oddeven"><td colspan="3" class="opacitymedium">'.$langs->trans("None").'</td></tr>';
+		}
+		print "</table><br>";
+	}
+}
+*/
+
+print '</div></div>';
+
+// End of page
+llxFooter();
+$db->close();

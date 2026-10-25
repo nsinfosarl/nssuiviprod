@@ -1,0 +1,263 @@
+# Copyright (C) 2026 Nicolas Silobre <contact@ns-info.fr>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#
+# Generic
+#
+
+# Module label 'ModuleNssuiviprodName'
+ModuleNssuiviprodName = Suivi des sites
+# Module description 'ModuleNssuiviprodDesc'
+ModuleNssuiviprodDesc = Suivi des sites des clients (Dolibarr, WordPress...) : URL, versions installées, plugins et sites à mettre à jour
+NssuiviprodDescription = Suivi des sites des clients (Dolibarr, WordPress...) : URL, versions installées, plugins et sites à mettre à jour
+
+#
+# Admin page
+#
+NssuiviprodSetup = Suivi des sites - Réglages
+Settings = Réglages
+About = À propos
+NssuiviprodAbout = Suivi des sites - À propos
+
+NssuiviprodErrorNsinfoRequired = Le framework NSINFO version 23.8.0 ou plus est obligatoire : le module « NSINFO » (nsinfo) doit être installé et activé avant d'activer le module « Suivi des sites ».
+
+#
+# Objects
+#
+Site = Site
+Sites = Sites
+NewSite = Nouveau site
+ListSite = Liste des sites
+SitesToUpdate = Sites à mettre à jour
+ShowSite = Voir le site
+DeleteSite = Supprimer le site
+SiteUrl = URL
+SiteUrls = URL
+ShowSiteUrl = Voir l'URL
+DeleteSiteUrl = Supprimer l'URL
+SitePlugin = Plugin installé
+SitePlugins = Plugins installés
+ShowSitePlugin = Voir le plugin
+DeleteSitePlugin = Supprimer le plugin
+SiteVersion = Version
+SiteVersions = Versions
+NewSiteVersion = Nouvelle version
+ListSiteVersion = Liste des versions
+ShowSiteVersion = Voir la version
+DeleteSiteVersion = Supprimer la version
+NssuiviprodTabThirdparty = <span class="nssuiviprod-tabpicto pictofixedwidth"></span>Suivi des sites
+
+#
+# Fields
+#
+SiteLabel = Nom du site
+SiteType = Type de site
+InstalledVersion = Version installée
+InstalledVersionHelp = Version installée sur le site, choisie parmi les versions actives du type de site (référentiel des versions)
+DateLastCheck = Date du dernier contrôle
+UrlComplement = Complément
+UrlComplementHelp = Informations complémentaires sur l'URL (texte avancé : mise en forme, liens, listes…)
+UrlComplementOnCard = Complément : bouton modifier de l'URL
+UrlEnvironment = Environnement
+UrlEnvironmentHelp = Production, développement ou sandbox (bac à sable)
+UrlEnvProd = Production
+UrlEnvDev = Développement
+UrlEnvSandbox = Sandbox
+UrlsBySituation = URL des sites en service par situation
+UrlType = Type d'URL
+Url = URL
+PluginLabel = Plugin
+PluginLabelHelp = Nom du plugin s'il n'est pas un produit Dolibarr (plugin WordPress par exemple). Si vide, la référence du produit est utilisée
+PluginProductHelp = Produit ou service Dolibarr correspondant au plugin (facultatif)
+PluginVersion = Version du plugin
+PluginRental = En location
+PluginTabGeneral = Général
+PluginTabModule = Module
+PluginTabCompat = Compatibilité
+PluginTabFeatures = Fonctionnalités
+PluginTabDolistore = Dolistore et import
+PluginRentalHelp = Module ou plugin loué (abonnement) plutôt qu'acheté
+PluginRentalYes = En location
+PluginRentalNo = Hors location
+PluginSetRental = Mettre en location
+PluginUnsetRental = Retirer de la location
+PluginDolistoreId = Identifiant Dolistore
+PluginDolistoreIdHelp = Numéro du produit sur le Dolistore (product.php?id=…). Trouvé automatiquement à la vérification si le libellé d'un seul produit du Dolistore commence par le nom technique ou le libellé du plugin ; à saisir sinon
+PluginDolistoreVersion = Version Dolistore
+PluginDolistoreDate = Date de vérification Dolistore
+PluginDolistoreLabel = Libellé Dolistore
+PluginDolistoreRef = Référence Dolistore
+PluginDolistoreRefHelp = Référence du produit sur le Dolistore (mémorisée à la vérification Dolistore) : le plugin est relié au produit de même référence, ou « LOC_<référence> » s'il est en location
+PluginDolistorePage = Page Dolistore
+PluginDolistoreSearch = Rechercher le module sur le Dolistore
+PluginDolistoreNewer = Version plus récente disponible sur le Dolistore
+PluginDolistoreCheck = Vérifier les versions Dolistore
+PluginDolistoreChecked = Versions Dolistore : %s trouvées, %s non trouvées
+ErrorDolistoreNotReachable = Le Dolistore ne répond pas.
+VersionNumber = Numéro de version
+VersionNumberHelp = Numéro de la version (ex. 20.0.3). Les versions d'un même type de site sont comparées sur ce numéro pour trouver la plus récente
+ReleaseDate = Date de sortie
+VersionState = État
+VersionStateSupported = Supportée
+VersionStateObsolete = Obsolète
+VersionStateSecurity = Faille de sécurité
+VersionComment = Commentaire
+VersionCommentHelp = Motif de la mise à jour à proposer au client (faille de sécurité, fin de support...)
+Nb = Nombre
+
+#
+# Status and situation
+#
+SiteStatusActive = En service
+SiteStatusStopped = Arrêté
+SiteStop = Arrêter le site
+SiteReopen = Remettre en service
+Situation = Situation
+SituationToUpdate = À mettre à jour (toutes)
+SituationUpToDate = À jour
+SituationUpdate = Mise à jour disponible
+SituationObsolete = Version obsolète
+SituationSecurity = Faille de sécurité
+SituationUnknown = Version non renseignée
+LatestVersion = Dernière version
+SitesInServiceByType = Sites en service par type
+ErrorVersionNotOfSiteType = La version installée ne correspond pas au type de site.
+ErrorPluginProductOrLabelRequired = Indiquez un produit ou le nom du plugin.
+
+#
+# Dictionaries and setup
+#
+DictionarySiteType = Suivi des sites - Types de site
+DictionaryUrlType = Suivi des sites - Types d'URL
+NssuiviprodDictionaries = Dictionnaires et référentiel
+NssuiviprodDictSiteType = Types de site (Dolibarr, WordPress...)
+NssuiviprodDictUrlType = Types d'URL (accès direct, administration...)
+NssuiviprodVersionsReferential = Référentiel des versions
+NssuiviprodArea = Suivi des sites
+
+#
+# Permissions
+#
+Permission17279101 = Consulter les sites
+Permission17279102 = Créer / modifier les sites, leurs URL et leurs plugins
+Permission17279103 = Supprimer les sites
+Permission17279111 = Consulter le référentiel des versions
+Permission17279112 = Créer / modifier le référentiel des versions
+Permission17279113 = Supprimer des versions du référentiel
+
+#
+# Plugins
+#
+NSSUIVIPROD_PLUGIN_TAG = Catégorie des produits plugins
+NSSUIVIPROD_PLUGIN_TAG_Tooltip = Seuls les produits de cette catégorie et de ses sous-catégories sont proposés comme plugins d'un site. Sans catégorie, tous les produits sont proposés
+ErrorPluginProductNotInTag = Ce produit n'est pas dans la catégorie des plugins (réglages du module).
+NssuiviprodSetupMenu = Réglages
+NssuiviprodReferential = Référentiel
+Permission17279121 = Accéder aux réglages du module
+
+#
+# Import of the plugins from the JSON file of the external modules (module nslistmodexterne)
+#
+PluginJsonImport = Importer les modules externes
+PluginJsonImportHelp = Fichier JSON des modules externes produit par le module « Liste des modules externes » (nslistmodexterne) du Dolibarr du site. Un plugin déjà présent est mis à jour (même nom technique, ou à défaut même libellé), sinon il est créé. Il est relié au produit plugin dont la référence ou le libellé correspond au nom technique ou au libellé du module.
+PluginJsonWhere = Fichier à télécharger depuis les réglages du module « Liste des modules externes » du Dolibarr de cette URL :
+PluginJsonImportFile = Importer le fichier
+PluginJsonImportLocal = Importer le fichier de cette instance
+PluginJsonFileDate = Fichier de cette instance généré le
+PluginJsonImported = Import terminé : %s plugins créés, %s mis à jour, %s reliés à un produit
+ErrorPluginJsonNoFile = Aucun fichier à importer.
+ErrorPluginJsonInvalid = Le fichier n'est pas un fichier JSON des modules externes (module nslistmodexterne).
+PluginUrlHelp = URL du site (instance de production, de développement, sandbox…) sur laquelle le plugin est installé
+PluginNoUrl = Sans URL
+PluginNoUrlYet = Ajoutez une URL au site : un onglet de plugins est créé pour chaque URL.
+WarningPluginJsonOtherUrl = L'adresse de l'instance du fichier (%s) ne correspond pas à cette URL (%s) : vérifiez que c'est le bon fichier.
+ErrorPluginJsonNoUrl = Aucune URL du site ne correspond à l'adresse de l'instance du fichier (%s) : ajoutez cette URL au site, puis relancez l'import.
+ErrorPluginJsonSeveralUrls = Plusieurs URL du site correspondent à l'adresse de l'instance du fichier (%s).
+PluginJsonAdded = %s plugins ajoutés par cet import
+PluginJsonMissing = %s plugins absents du fichier (conservés, à supprimer si besoin)
+PluginImportNew = Nouveau
+PluginImportNewHelp = Plugin ajouté par le dernier import du fichier JSON des modules externes
+PluginImportMissing = Absent du dernier import
+PluginImportMissingHelp = Plugin importé auparavant mais absent du dernier fichier JSON des modules externes (module supprimé du site ?)
+PluginDeleteMissing = Supprimer les plugins absents
+PluginLinkProducts = Relier les plugins aux produits (plugins sans produit dont le nom technique ou le libellé correspond à la référence ou au libellé d'un produit plugin)
+PluginProductsLinked = %s plugins reliés à un produit
+PluginDeleteMissingConfirm = Supprimer les plugins absents du dernier import du fichier JSON des modules externes ?
+PluginDeleteSelected = Supprimer les plugins sélectionnés
+PluginDeleteSelectedConfirm = Supprimer les %s plugins sélectionnés ?
+PluginModuleName = Nom technique
+PluginModuleClass = Classe du descripteur
+PluginModuleNumber = Numéro du module
+PluginModuleDescription = Description du module
+PluginPublisher = Éditeur
+PluginPublisherUrl = Site de l'éditeur
+PluginFamily = Famille
+PluginModuleEnabled = Activé
+PluginActivationDate = Date d'activation
+PluginModulePath = Dossier
+PluginVersionFile = Fichier VERSION
+PluginHasChangelog = ChangeLog présent
+PluginNeedDolibarrVersion = Dolibarr min.
+PluginPhpMin = PHP min.
+PluginDepends = Dépendances
+PluginRequiredBy = Requis par
+PluginConflictWith = Incompatible avec
+PluginSetupPage = Page de réglages
+PluginLangFiles = Fichiers de langue
+PluginUrlLastVersion = URL de la dernière version
+PluginNbRights = Permissions
+PluginNbMenus = Menus
+PluginNbTabs = Onglets
+PluginNbDictionaries = Dictionnaires
+PluginNbWidgets = Widgets
+PluginNbCronJobs = Tâches planifiées
+PluginHasTriggers = Triggers
+PluginHasModels = Modèles de documents
+PluginHooks = Hooks
+PluginCss = CSS
+PluginJs = JS
+PluginJsonDate = Date du fichier importé
+PluginJsonDateHelp = Date de génération du fichier JSON des modules externes lors du dernier import
+
+#
+# Events of the agenda (actions on the sites)
+#
+NssuiviprodEvtSiteCreated = Site créé : %s
+NssuiviprodEvtSiteModified = Site modifié : %s
+NssuiviprodEvtSiteDeleted = Site supprimé : %s
+NssuiviprodEvtSiteStopped = Site arrêté : %s
+NssuiviprodEvtSiteReopened = Site remis en service : %s
+NssuiviprodEvtUrlCreated = URL ajoutée : %s
+NssuiviprodEvtUrlModified = URL modifiée : %s
+NssuiviprodEvtUrlDeleted = URL supprimée : %s
+NssuiviprodEvtUrlMoved = URL déplacée vers le %s : %s
+NssuiviprodEvtUrlOrder = Ordre des URL modifié
+NssuiviprodEvtUp = haut
+NssuiviprodEvtDown = bas
+NssuiviprodEvtPluginCreated = Plugin ajouté : %s
+NssuiviprodEvtPluginModified = Plugin modifié : %s
+NssuiviprodEvtPluginDeleted = Plugin supprimé : %s
+NssuiviprodEvtPluginsDeleted = %s plugins supprimés (URL %s)
+NssuiviprodEvtMissingPluginsDeleted = %s plugins absents du dernier import supprimés (URL %s)
+NssuiviprodEvtPluginsImported = Import JSON des plugins (URL %s)
+NssuiviprodEvtImportFile = Fichier : %s
+NssuiviprodEvtImportInstance = Instance du fichier : %s
+NssuiviprodEvtDolistoreChecked = Vérification des versions Dolistore (URL %s)
+NssuiviprodEvtNewerVersion = %s : version installée %s, version Dolistore %s
+NssuiviprodEvtProductsLinked = %s plugins reliés aux produits (URL %s)
+NssuiviprodEvtFieldChange = %s : %s → %s
+NssuiviprodEvtFieldChanged = %s : modifié
+NssuiviprodEvtEmpty = (vide)
+ErrorNumberingModuleNotSetup = Le modèle de numérotation des %s n'est pas configuré ou ne renvoie pas de référence (réglages du module Suivi des sites)
