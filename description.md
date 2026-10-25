@@ -30,14 +30,14 @@ Vous installez et maintenez des Dolibarr, des WordPress ou d'autres applications
 
 ### Les versions et les mises à jour
 
-- Un **référentiel des versions** par type de site : version supportée, obsolète ou avec une **faille de sécurité**, avec un commentaire.
-- La **situation** de chaque URL est calculée : à jour, mise à jour disponible, version obsolète, faille de sécurité, version non renseignée.
+- Une **version actuelle** par type de site, dans les réglages (exemple : Dolibarr 24.0.2).
+- La **situation** de chaque URL est calculée : à jour, **mise à jour disponible** si sa version est inférieure, version non renseignée.
 - Un menu **« Sites à mettre à jour »** et un tableau de bord sur l'accueil du module.
 
 ### Les plugins installés
 
 - Un **onglet par URL** sur la fiche du site, avec ses plugins : produit Dolibarr ou nom libre, version, **location ou achat**.
-- **Import de la liste des modules externes** d'un Dolibarr, à partir du fichier produit par le module gratuit **NsListModExterne** : lien direct (avec bouton de copie) vers la page où le télécharger, plugins mis à jour, plugins ajoutés et plugins disparus signalés, puis versions Dolistore vérifiées et plugins reliés à vos produits **automatiquement**.
+- **Import en une opération** du fichier produit par le module gratuit **NsListModExterne** : l'URL du Dolibarr est retrouvée ou créée, reçoit sa version exacte et la date du contrôle, et ses plugins sont ajoutés ou mis à jour ; plugins disparus signalés ; puis versions Dolistore vérifiées et plugins reliés à vos produits **automatiquement** (option).
 - Recherche, sélection et suppression en masse.
 
 ### Le Dolistore intégré
@@ -55,7 +55,7 @@ Vous installez et maintenez des Dolibarr, des WordPress ou d'autres applications
 
 ### Simple et sûr
 
-- Droits séparés pour les sites, pour le référentiel des versions et pour les réglages du module.
+- Droits séparés pour les sites et pour les réglages du module.
 - Compatible **multisociété**, attributs supplémentaires sur tous les objets.
 - **Aucune modification du Core** de Dolibarr.
 
@@ -79,7 +79,7 @@ Vous installez et maintenez des Dolibarr, des WordPress ou d'autres applications
 
 ## Mots-clés
 
-suivi des sites, sites clients, maintenance, infogérance, parc, URL, production, développement, sandbox, version, mise à jour, faille de sécurité, plugins, modules externes, Dolistore, WordPress, location, agenda, NSINFO
+suivi des sites, sites clients, maintenance, infogérance, parc, URL, production, développement, sandbox, version, mise à jour, version actuelle, plugins, modules externes, Dolistore, WordPress, location, agenda, NSINFO
 
 ---
 
@@ -109,14 +109,14 @@ Do you install and maintain Dolibarr, WordPress or other applications for your c
 
 ### Versions and updates
 
-- A **versions referential** per type of site: supported, obsolete or with a **security issue**, with a comment.
-- The **situation** of each URL is computed: up to date, update available, obsolete version, security issue, version not set.
+- A **current version** per type of site, in the setup (example: Dolibarr 24.0.2).
+- The **situation** of each URL is computed: up to date, **update available** if its version is lower, version not set.
 - A **"Sites to update"** menu and a dashboard on the home page of the module.
 
 ### Installed plugins
 
 - One **tab per URL** on the site card, with its plugins: Dolibarr product or free name, version, **rented or bought**.
-- **Import of the list of the external modules** of a Dolibarr, from the file produced by the free module **NsListModExterne**: direct link (with a copy button) to the page where it is downloaded, plugins updated, new and removed plugins reported, then Dolistore versions checked and plugins linked to your products **automatically**.
+- **Import in one operation** of the file produced by the free module **NsListModExterne**: the URL of the Dolibarr is found or created, gets its exact version and the date of check, and its plugins are added or updated; removed plugins reported; then Dolistore versions checked and plugins linked to your products **automatically** (option).
 - Search, selection and mass deletion.
 
 ### The Dolistore built in
@@ -134,7 +134,7 @@ Do you install and maintain Dolibarr, WordPress or other applications for your c
 
 ### Simple and secure
 
-- Separate permissions for the sites, the versions referential and the setup of the module.
+- Separate permissions for the sites and the setup of the module.
 - **Multicompany** compatible, extra fields on all objects.
 - **No change to the Dolibarr Core**.
 
@@ -158,4 +158,4 @@ Do you install and maintain Dolibarr, WordPress or other applications for your c
 
 ## Keywords
 
-site tracking, customer sites, maintenance, managed services, fleet, URL, production, development, sandbox, version, update, security issue, plugins, external modules, Dolistore, WordPress, rental, agenda, NSINFO
+site tracking, customer sites, maintenance, managed services, fleet, URL, production, development, sandbox, version, update, current version, plugins, external modules, Dolistore, WordPress, rental, agenda, NSINFO
