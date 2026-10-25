@@ -1287,7 +1287,12 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			}
 			// Name and description: the column adapts its width (400 px at most), the description stays on one line with
 			// "..." when it is too long (full text in the tooltip)
-			print '<td class="minwidth200 wordbreak" style="max-width: 400px">'.dol_escape_htmltag($tmpplugin->label).(isset($importstates[(int) $tmpplugin->id]) ? SitePlugin::getImportStateBadge($importstates[(int) $tmpplugin->id]) : '');
+			// Name of the plugin linked to the card of its module
+			$pluginname = dol_escape_htmltag($tmpplugin->label);
+			if ($tmppluginmodule) {
+				$pluginname = '<a href="'.dol_buildpath('/nssuiviprod/core/module/pluginmodule_card.php', 1).'?id='.((int) $tmppluginmodule->id).'" title="'.dol_escape_htmltag($langs->trans('ShowPluginModule').' : '.$tmppluginmodule->ref).'">'.$pluginname.'</a>';
+			}
+			print '<td class="minwidth200 wordbreak" style="max-width: 400px">'.$pluginname.(isset($importstates[(int) $tmpplugin->id]) ? SitePlugin::getImportStateBadge($importstates[(int) $tmpplugin->id]) : '');
 			// Description of the module (JSON file of the external modules), full text in the tooltip
 			$tmpdesc = trim(dol_string_nohtmltag((string) $tmpplugin->module_description, 1));
 			if ($tmpdesc !== '') {

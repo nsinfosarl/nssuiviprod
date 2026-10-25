@@ -89,3 +89,6 @@ UPDATE llx_nssuiviprod_siteurl SET version = (SELECT v.ref FROM llx_nssuiviprod_
 -- more used.
 ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN fk_module integer;
 ALTER TABLE llx_nssuiviprod_siteplugin ADD INDEX idx_nssuiviprod_siteplugin_fk_module (fk_module);
+-- 23.0.3: product/service of the module (given to its plugins without product)
+ALTER TABLE llx_nssuiviprod_pluginmodule ADD COLUMN fk_product integer;
+ALTER TABLE llx_nssuiviprod_pluginmodule ADD INDEX idx_nssuiviprod_pluginmodule_fk_product (fk_product);

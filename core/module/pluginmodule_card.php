@@ -214,6 +214,24 @@ if (empty($reshook)) {
 
 	// Actions cancel, add, update, update_extras, confirm_validate, confirm_delete, confirm_deleteline, confirm_clone, confirm_close, confirm_setdraft, confirm_reopen
 	// Check of the current version of the module on the Dolistore, asked by the user: always done
+	// Product/service of the module changed directly on the card (pencil), given to its plugins without product
+	if ($action == 'setfk_product' && $permissiontoadd && $object->id > 0 && !GETPOST('cancel', 'alpha')) {
+		if (GETPOST('token', 'alpha') != currentToken()) {
+			accessforbidden('Bad value for CSRF token');
+		}
+		$newproduct = GETPOSTINT('fk_product');
+		$pluginproducts = SitePlugin::getPluginProductIds($db);
+		if ($newproduct > 0 && is_array($pluginproducts) && !in_array($newproduct, $pluginproducts)) {
+			setEventMessages($langs->trans('ErrorPluginProductNotInTag'), null, 'errors');
+		} else {
+			$object->fk_product = ($newproduct > 0 ? $newproduct : null);
+			if ($object->update($user) < 0) {
+				setEventMessages($object->error, $object->errors, 'errors');
+			}
+		}
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id);
+		exit;
+	}
 	if ($action == 'checkdolistore' && $permissiontoadd && $object->id > 0) {
 		$res = $object->checkDolistoreVersion($user, 0, 1);
 		if ($res < 0) {
@@ -478,7 +496,44 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	//$keyforbreak='fieldkeytoswitchonsecondcolumn';	// We change column just before this field
 	//unset($object->fields['fk_project']);				// Hide field already shown in banner
 	//unset($object->fields['fk_soc']);					// Hide field already shown in banner
+	// Product/service shown under the name of the plugin, with its pencil to change it directly (row inserted after the
+	// one of the name in the output of the template)
+	$fkproductfield = (isset($object->fields['fk_product']) ? $object->fields['fk_product'] : null);
+	unset($object->fields['fk_product']);
+	ob_start();
 	include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_view.tpl.php';
+	$commonfieldsout = ob_get_clean();
+	$productrow = '';
+	if ($fkproductfield) {
+		$object->fields['fk_product'] = $fkproductfield;
+		// Same cells as the row of the name (label and pencil on the right, built by editfieldkey)
+		$productrow .= '<tr class="field_fk_product"><td class="titlefieldmiddle fieldname_fk_product">';
+		$productrow .= $form->editfieldkey('PluginModuleProduct', 'fk_product', '', $object, $permissiontoadd, 'string', '', 0, 0, 'id', $langs->trans('PluginModuleProductHelp'));
+		$productrow .= '</td><td class="valuefield fieldname_fk_product">';
+		if ($action == 'editfk_product' && $permissiontoadd) {
+			$productrow .= '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'">';
+			$productrow .= '<input type="hidden" name="token" value="'.newToken().'">';
+			$productrow .= '<input type="hidden" name="action" value="setfk_product">';
+			$productrow .= $object->showInputField($fkproductfield, 'fk_product', $object->fk_product, '', '', '', 'maxwidth500 widthcentpercentminusxx');
+			$productrow .= ' <input type="submit" class="button smallpaddingimp" value="'.$langs->trans('Save').'">';
+			$productrow .= ' <input type="submit" class="button button-cancel smallpaddingimp" name="cancel" value="'.$langs->trans('Cancel').'">';
+			$productrow .= '</form>';
+		} else {
+			$productrow .= $object->showOutputField($fkproductfield, 'fk_product', (string) $object->fk_product, '');
+		}
+		$productrow .= '</td></tr>';
+	}
+	// Inserted before the row of the field that follows the name (the row of the name contains a table for its pencil)
+	$labelrowpos = strpos($commonfieldsout, '<tr class="field_label"');
+	$nextrowpos = ($labelrowpos !== false ? strpos($commonfieldsout, '<tr class="field_', $labelrowpos + 10) : false);
+	if ($nextrowpos === false && $labelrowpos !== false) {
+		$nextrowpos = strpos($commonfieldsout, '</table>', strrpos($commonfieldsout, '</tr>'));	// Name is the last row
+	}
+	if ($nextrowpos !== false) {
+		print substr($commonfieldsout, 0, $nextrowpos).$productrow.substr($commonfieldsout, $nextrowpos);
+	} else {
+		print $productrow.$commonfieldsout;	// No row of the name: product first
+	}
 
 	// Other attributes. Fields from hook formObjectOptions and Extrafields.
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_view.tpl.php';

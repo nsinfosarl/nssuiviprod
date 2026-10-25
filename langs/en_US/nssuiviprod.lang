@@ -280,3 +280,5 @@ NSSUIVIPROD_SHOW_ON_SERVICES = Services: show the installations on the sites
 NSSUIVIPROD_SHOW_ON_SERVICES_Tooltip = Column "Installations on the sites" of the list of the services and tab of the service card (services linked to at least one plugin). Disabled: no column nor tab on the services. Enabled by default.
 NSSUIVIPROD_SHOW_ON_PRODUCTS = Products: show the installations on the sites
 NSSUIVIPROD_SHOW_ON_PRODUCTS_Tooltip = Column "Installations on the sites" of the list of the products and tab of the product card (products linked to at least one plugin). Disabled: no column nor tab on the products. Disabled by default.
+PluginModuleProduct = Product/service
+PluginModuleProductHelp = Product or service of the module (category of the plugins of the setup): when saved, it is given to all the plugins of this module without product, on all the sites; it is then used first by the import and the automatic link.

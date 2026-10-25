@@ -19,6 +19,7 @@ CREATE TABLE llx_nssuiviprod_pluginmodule(
 	entity integer DEFAULT 1 NOT NULL, 
 	ref varchar(128) NOT NULL, 
 	label varchar(255), 
+	fk_product integer, 
 	module_class varchar(128), 
 	module_number integer, 
 	module_description text, 

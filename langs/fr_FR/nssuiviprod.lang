@@ -281,3 +281,5 @@ NSSUIVIPROD_SHOW_ON_SERVICES = Services : afficher les installations sur les sit
 NSSUIVIPROD_SHOW_ON_SERVICES_Tooltip = Colonne « Installations sur les sites » de la liste des services et onglet de la fiche service (services reliés à au moins un plugin). Désactivé : pas de colonne ni d'onglet sur les services. Activé par défaut.
 NSSUIVIPROD_SHOW_ON_PRODUCTS = Produits : afficher les installations sur les sites
 NSSUIVIPROD_SHOW_ON_PRODUCTS_Tooltip = Colonne « Installations sur les sites » de la liste des produits et onglet de la fiche produit (produits reliés à au moins un plugin). Désactivé : pas de colonne ni d'onglet sur les produits. Désactivé par défaut.
+PluginModuleProduct = Produit/service
+PluginModuleProductHelp = Produit ou service du module (catégorie des plugins des réglages) : à l'enregistrement, il est donné à tous les plugins de ce module sans produit, sur tous les sites ; il sert ensuite en priorité à l'import et à la liaison automatique.

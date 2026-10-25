@@ -1,5 +1,9 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 23.0.3 - 26/10/2026
+- Fiche module : produit/service du module (modifiable directement par son crayon), donné à ses plugins sans produit sur tous les sites et utilisé en priorité à l'import et à la liaison automatique
+- Fiche site : nom de chaque plugin relié à la fiche de son module
+
 ## 23.0.2 - 25/10/2026
 - Modules uniques : table des modules (identité et informations Dolistore une seule fois), plugins des URL reliés à leur module ; menu, liste et fiche « Modules » ; migration automatique des plugins existants, lancée une seule fois
 - Dolistore : un module interrogé au plus une fois par jour (réglage pour en autoriser plusieurs, boutons toujours actifs) ; tâche planifiée quotidienne ; adresse de l'API réglable (corrige « Le Dolistore ne répond pas » en Dolibarr 20)

@@ -70,7 +70,7 @@ class PluginModule extends CommonObject
 	 * Version of the database of the module (tables and migrated data): saved in NSSUIVIPROD_DB_VERSION by the
 	 * activation of the module once the migration is done
 	 */
-	const DB_VERSION = '23.0.2';
+	const DB_VERSION = '23.0.3';
 
 	/**
 	 * @var int<0,1>	Does object support extrafields ? 0=No, 1=Yes
@@ -141,6 +141,7 @@ class PluginModule extends CommonObject
 		"entity" => array("type" => "integer", "label" => "Entity", "enabled" => "1", 'position' => 5, 'notnull' => 1, "visible" => "0", "default" => "1", "index" => "1",),
 		"ref" => array("type" => "varchar(128)", "label" => "PluginModuleName", "enabled" => "1", 'position' => 20, 'notnull' => 1, "visible" => "1", "index" => "1", "searchall" => "1", "showoncombobox" => "1", "css" => "minwidth200", "help" => "PluginModuleNameHelp", "validate" => "1", "comment" => "Technical name of the module (unique)"),
 		"label" => array("type" => "varchar(255)", "label" => "PluginLabel", "enabled" => "1", 'position' => 30, 'notnull' => 0, "visible" => "1", "alwayseditable" => "1", "searchall" => "1", "showoncombobox" => "2", "css" => "minwidth300", "cssview" => "wordbreak", "validate" => "1",),
+		"fk_product" => array("type" => "integer:Product:product/class/product.class.php:1", "label" => "PluginModuleProduct", "picto" => "product", "enabled" => "isModEnabled('product') || isModEnabled('service')", 'position' => 32, 'notnull' => 0, "visible" => "1", "index" => "1", "css" => "maxwidth500 widthcentpercentminusxx", "csslist" => "tdoverflowmax150", "help" => "PluginModuleProductHelp", "validate" => "1",),
 		"module_description" => array("type" => "text", "label" => "PluginModuleDescription", "enabled" => "1", 'position' => 35, 'notnull' => 0, "visible" => "3", "searchall" => "1", "validate" => "1",),
 		"publisher" => array("type" => "varchar(255)", "label" => "PluginPublisher", "enabled" => "1", 'position' => 40, 'notnull' => 0, "visible" => "1", "searchall" => "1", "csslist" => "tdoverflowmax150", "validate" => "1",),
 		"publisher_url" => array("type" => "url", "label" => "PluginPublisherUrl", "enabled" => "1", 'position' => 41, 'notnull' => 0, "visible" => "-1", "csslist" => "tdoverflowmax150", "validate" => "1",),
@@ -165,6 +166,7 @@ class PluginModule extends CommonObject
 	public $entity;
 	public $ref;
 	public $label;
+	public $fk_product;
 	public $module_description;
 	public $publisher;
 	public $publisher_url;
@@ -246,6 +248,15 @@ class PluginModule extends CommonObject
 			$this->fields['myfield']['visible'] = 1;
 			$this->fields['myfield']['noteditable'] = 0;
 		}*/
+
+		// Products of the category of the plugins only (setup), not when ModuleBuilder rewrites the class from ->fields
+		if (strpos((string) (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : ''), '/modulebuilder/') === false && !defined('NSINFO_MB_STATIC_FIELDS') && isset($this->fields['fk_product'])) {
+			dol_include_once('/nssuiviprod/class/siteplugin.class.php');
+			$pluginproducts = SitePlugin::getPluginProductIds($db);
+			if (is_array($pluginproducts)) {
+				$this->fields['fk_product']['type'] = 'integer:Product:product/class/product.class.php:1:(t.rowid:IN:'.(count($pluginproducts) ? implode(',', $pluginproducts) : '0').')';
+			}
+		}
 
 		// Unset fields that are disabled
 		foreach ($this->fields as $key => $val) {
@@ -509,7 +520,20 @@ class PluginModule extends CommonObject
 	 */
 	public function update(User $user, $notrigger = 0)
 	{
-		return $this->updateCommon($user, $notrigger);
+		$result = $this->updateCommon($user, $notrigger);
+		// Product/service of the module: given to its plugins without product, on all the sites
+		if ($result > 0 && $this->fk_product > 0) {
+			$sql = "UPDATE ".$this->db->prefix()."nssuiviprod_siteplugin SET fk_product = ".((int) $this->fk_product).", fk_user_modif = ".((int) $user->id);
+			$sql .= " WHERE fk_module = ".((int) $this->id)." AND (fk_product IS NULL OR fk_product = 0)";
+			if (!$this->db->query($sql)) {
+				$this->error = $this->db->lasterror();
+				$this->errors[] = $this->error;
+				return -1;
+			}
+		}
+		self::$cache[(int) $this->id] = $this;
+
+		return $result;
 	}
 
 	/**
@@ -1618,7 +1642,7 @@ class PluginModule extends CommonObject
 			if (!$uptodate) {
 				$resql = $db->query("SELECT COUNT(rowid) as nb FROM ".$db->prefix()."nssuiviprod_siteplugin WHERE fk_module IS NULL");
 				$obj = ($resql ? $db->fetch_object($resql) : null);
-				$uptodate = ($obj && (int) $obj->nb == 0 && $db->query("SELECT rowid FROM ".$db->prefix()."nssuiviprod_pluginmodule WHERE 1 = 0"));
+				$uptodate = ($obj && (int) $obj->nb == 0 && $db->query("SELECT rowid, fk_product FROM ".$db->prefix()."nssuiviprod_pluginmodule WHERE 1 = 0"));
 			}
 		}
 

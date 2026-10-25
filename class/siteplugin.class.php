@@ -244,8 +244,13 @@ class SitePlugin extends CommonObject
 		'module_name' => 'ref', 'module_class' => 'module_class', 'module_number' => 'module_number', 'module_description' => 'module_description',
 		'publisher' => 'publisher', 'publisher_url' => 'publisher_url', 'family' => 'family', 'url_last_version' => 'url_last_version',
 		'dolistore_id' => 'dolistore_id', 'dolistore_version' => 'dolistore_version', 'dolistore_label' => 'dolistore_label',
-		'dolistore_ref' => 'dolistore_ref', 'dolistore_date' => 'dolistore_date',
+		'dolistore_ref' => 'dolistore_ref', 'dolistore_date' => 'dolistore_date', 'module_fk_product' => 'fk_product',
 	);
+
+	/**
+	 * @var int		Product/service of the module of the plugin (used first to link the plugin to a product)
+	 */
+	public $module_fk_product;
 
 	/**
 	 * @var bool	true when the information of the module comes from an import (the module is updated with it)
@@ -380,6 +385,9 @@ class SitePlugin extends CommonObject
 		$this->ref = dol_substr($this->ref, 0, 128);
 		if ($this->syncModule($user) < 0) {
 			return -1;
+		}
+		if (empty($this->fk_product) && $this->module_fk_product > 0) {
+			$this->fk_product = (int) $this->module_fk_product;	// Product/service of the module
 		}
 
 		$result = $this->createCommon($user, $notrigger);
@@ -662,6 +670,9 @@ class SitePlugin extends CommonObject
 		$this->ref = dol_substr($this->ref, 0, 128);
 		if ($this->syncModule($user) < 0) {
 			return -1;
+		}
+		if (empty($this->fk_product) && $this->module_fk_product > 0) {
+			$this->fk_product = (int) $this->module_fk_product;	// Product/service of the module
 		}
 
 		$old = new self($this->db);
@@ -1284,7 +1295,7 @@ class SitePlugin extends CommonObject
 		$data = array();
 		if (!empty($this->moduledatafromimport)) {
 			foreach (self::$modulefields as $property => $field) {
-				if ($field != 'ref' && strpos($field, 'dolistore_') !== 0) {
+				if ($field != 'ref' && $field != 'fk_product' && strpos($field, 'dolistore_') !== 0) {	// Product: chosen on the module
 					$data[$field] = $this->$property;
 				}
 			}
@@ -1695,7 +1706,8 @@ class SitePlugin extends CommonObject
 			// Product of the plugins matching the module (reference, then label)
 			if (empty($plugin->fk_product)) {
 				$plugin->module_name = $name;
-				$productid = self::findPluginProduct($productmaps, array_unique(array_merge($keys, $plugin->getNameKeys())), (string) $plugin->dolistore_ref, (int) $plugin->rental);
+				$knownmodule = PluginModule::getCached($this->db, PluginModule::findByName($this->db, $name));
+				$productid = ($knownmodule && $knownmodule->fk_product > 0) ? (int) $knownmodule->fk_product : self::findPluginProduct($productmaps, array_unique(array_merge($keys, $plugin->getNameKeys())), (string) $plugin->dolistore_ref, (int) $plugin->rental);
 				if ($productid) {
 					$plugin->fk_product = $productid;
 					$result['linked']++;
@@ -2044,7 +2056,7 @@ class SitePlugin extends CommonObject
 			if (!empty($plugin->fk_product)) {
 				continue;
 			}
-			$productid = self::findPluginProduct($products, $plugin->getNameKeys(), (string) $plugin->dolistore_ref, (int) $plugin->rental);
+			$productid = ($plugin->module_fk_product > 0 ? (int) $plugin->module_fk_product : self::findPluginProduct($products, $plugin->getNameKeys(), (string) $plugin->dolistore_ref, (int) $plugin->rental));
 			if ($productid && $plugin->setValueFrom('fk_product', $productid, '', null, 'int', '', null) > 0) {
 				$nb++;
 			} elseif ($productid) {
