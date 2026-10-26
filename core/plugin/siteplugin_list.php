@@ -395,6 +395,7 @@ if (!empty($object->ismultientitymanaged) && (int) $object->ismultientitymanaged
 } else {
 	$sql .= " WHERE 1 = 1";
 }
+$sql .= " AND (t.module_enabled IS NULL OR t.module_enabled <> 0)";	// Module disabled on the site: not listed
 foreach ($search as $key => $val) {
 	if (array_key_exists($key, $object->fields)) {
 		if ($key == 'status' && $search[$key] == -1) {

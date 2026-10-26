@@ -1681,6 +1681,24 @@ class SitePlugin extends CommonObject
 				continue;
 			}
 			$name = (string) $module['name'];
+			if (array_key_exists('enabled', $module) && empty($module['enabled'])) {
+				// Module disabled on the site: not imported; a plugin already imported is marked disabled (hidden from the lists)
+				// and is not reported as absent from the file
+				if (isset($byname[dol_strtolower($name)])) {
+					$disabled = $byname[dol_strtolower($name)];
+					$touched[(int) $disabled->id] = 1;
+					if ((string) $disabled->module_enabled !== '0') {
+						$disabled->module_enabled = 0;
+						if ($disabled->update($user) <= 0) {
+							$this->error = $name.': '.$disabled->error;
+							$this->errors = array_merge(array($this->error), $disabled->errors);
+							$this->db->rollback();
+							return -1;
+						}
+					}
+				}
+				continue;
+			}
 			$label = trim((string) (isset($module['label']) ? $module['label'] : ''));
 			$keys = array_unique(array_filter(array(dol_strtolower($name), dol_strtolower($label))));
 

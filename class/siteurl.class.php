@@ -129,6 +129,7 @@ class SiteUrl extends CommonObject
 	 */
 	const SITUATION_UPTODATE = 'uptodate';
 	const SITUATION_UPDATE = 'update';
+	const SITUATION_MINOR = 'minor';
 	const SITUATION_UNKNOWN = 'unknown';
 	const SITUATION_NOCURRENT = 'nocurrent';
 
@@ -1181,7 +1182,16 @@ class SiteUrl extends CommonObject
 			return self::SITUATION_NOCURRENT;
 		}
 
-		return (self::compareVersions($version, $current) < 0 ? self::SITUATION_UPDATE : self::SITUATION_UPTODATE);
+		if (self::compareVersions($version, $current) >= 0) {
+			return self::SITUATION_UPTODATE;
+		}
+
+		// Same major version as the current one (24 or 24.0.1 for 24.0.2): minor update
+		$major = function ($v) {
+			return (int) preg_replace('/^[^0-9]*(\d+).*$/', '$1', trim((string) $v));
+		};
+
+		return ($major($version) == $major($current) ? self::SITUATION_MINOR : self::SITUATION_UPDATE);
 	}
 
 	/**
@@ -1208,6 +1218,13 @@ class SiteUrl extends CommonObject
 	{
 		$a = preg_replace('/^[^0-9]+/', '', trim((string) $a));
 		$b = preg_replace('/^[^0-9]+/', '', trim((string) $b));
+		// "24" and "24.0" are "24.0.0"
+		foreach (array(&$a, &$b) as &$v) {
+			if (preg_match('/^\d+(\.\d+){0,1}$/', $v)) {
+				$v .= str_repeat('.0', 2 - substr_count($v, '.'));
+			}
+		}
+		unset($v);
 
 		return version_compare($a, $b);
 	}
@@ -1226,6 +1243,7 @@ class SiteUrl extends CommonObject
 		return array(
 			self::SITUATION_UPTODATE => $langs->trans('SituationUpToDate'),
 			self::SITUATION_UPDATE => $langs->trans('SituationUpdate'),
+			self::SITUATION_MINOR => $langs->trans('SituationMinor'),
 			self::SITUATION_UNKNOWN => $langs->trans('SituationUnknown'),
 			self::SITUATION_NOCURRENT => $langs->trans('SituationNoCurrent'),
 		);
@@ -1243,6 +1261,7 @@ class SiteUrl extends CommonObject
 		$types = array(
 			self::SITUATION_UPTODATE => 'success',
 			self::SITUATION_UPDATE => 'warning',
+			self::SITUATION_MINOR => 'success',
 			self::SITUATION_UNKNOWN => 'secondary',
 			self::SITUATION_NOCURRENT => 'secondary',
 		);
@@ -1250,7 +1269,25 @@ class SiteUrl extends CommonObject
 			$situation = self::SITUATION_UNKNOWN;
 		}
 
-		return dolGetBadge($labels[$situation], '', $types[$situation]);
+		return self::getBadge($labels[$situation], $situation, $types[$situation]);
+	}
+
+	/**
+	 * Return a badge colored by situation: the minor update is light green (own color, no Dolibarr badge type)
+	 *
+	 * @param	string	$label			Text of the badge (already escaped)
+	 * @param	string	$situation		Situation (self::SITUATION_xxx)
+	 * @param	string	$type			Dolibarr badge type used for the other situations
+	 * @return	string					HTML
+	 */
+	public static function getBadge($label, $situation, $type)
+	{
+		$params = array();
+		if ($situation == self::SITUATION_MINOR) {
+			$params['attr'] = array('style' => 'background-color: #b7e4a7 !important; color: #000 !important; border-color: #b7e4a7 !important;');
+		}
+
+		return dolGetBadge($label, '', $type, '', '', $params);
 	}
 
 	/**

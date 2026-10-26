@@ -11,7 +11,7 @@
 
 ### Version
 
-- Version : 23.0.3
+- Version : 23.0.4
 - PHP : 7.4 - 8.3
 - Compatibilité : Dolibarr 20.0.0 - 24.0.x
 - NSINFO Framework : 23.8.0
@@ -37,12 +37,12 @@ Nssuiviprod : Suivi des sites, sans aucune modification du Core.
 - Plugins en location ou non : icône de couleur en première colonne, bascule d'un clic sur la fiche site, actions de masse dans la liste des plugins
 - Version en cours sur le Dolistore (vérification depuis la fiche site ou par action de masse), mise en avant quand elle est plus récente que la version installée ; identification Dolistore mémorisée et réutilisée pour tous les clients
 - Liens vers le Dolistore (icône du Dolistore) et vers le site de l'éditeur de chaque plugin
-- Import du fichier JSON du module « Liste des modules externes » (`nslistmodexterne`) au niveau des URL de la fiche site, en une opération : URL de l'instance retrouvée ou créée (type d'URL et environnement choisis), version installée = version exacte de Dolibarr du fichier, date du dernier contrôle du jour, puis plugins de l'URL ; fichier envoyé ou fichier de l'instance ; lien vers les réglages de ce module sur le Dolibarr de l'URL (avec bouton de copie) dans l'onglet de ses plugins ; mise à jour des plugins existants, plugins ajoutés ou absents signalés (suppression possible), association aux produits plugins (référence ou libellé), tous les champs du JSON enregistrés sur le plugin (éditeur, numéro, famille, activé, dépendances, fonctionnalités…) ; vérification des versions Dolistore et liaison aux produits lancées automatiquement après l'import si l'option des réglages est activée
+- Import du fichier JSON du module « Liste des modules externes » (`nslistmodexterne`) au niveau des URL de la fiche site, en une opération : URL de l'instance retrouvée ou créée (type d'URL et environnement choisis), version installée = version exacte de Dolibarr du fichier, date du dernier contrôle du jour, puis plugins de l'URL ; fichier envoyé ou fichier de l'instance ; lien vers les réglages de ce module sur le Dolibarr de l'URL (avec bouton de copie) dans l'onglet de ses plugins ; mise à jour des plugins existants, plugins ajoutés ou absents signalés (suppression possible), association aux produits plugins (référence ou libellé), modules désactivés dans le fichier (`"enabled": false`) ignorés, tous les champs du JSON enregistrés sur le plugin (éditeur, numéro, famille, activé, dépendances, fonctionnalités…) ; vérification des versions Dolistore et liaison aux produits lancées automatiquement après l'import si l'option des réglages est activée
 - Catégorie des produits plugins (réglages) : seuls les produits de cette catégorie et de ses sous-catégories sont proposés comme plugins
 - Association automatique des plugins aux produits plugins (bouton dans chaque onglet d'URL et à l'import) : par la référence Dolistore (produit « LOC_ » pour la location), sinon par la référence ou le libellé du produit
 - Référentiel des versions : version actuelle de chaque type de site dans les réglages (x.y.z) ; la version installée d'une URL est un numéro, comparé à cette version actuelle
-- Situation de chaque URL : à jour, mise à jour disponible, version non renseignée, ou pas de version actuelle pour son type de site
-- Liste des URL filtrable par situation (« Mise à jour disponible ») ; listes des sites et des plugins installés (quels clients ont tel plugin)
+- Situation de chaque URL : à jour, mise à jour disponible, mise à jour mineure disponible (même version majeure que la version de référence, badge vert clair), version non renseignée, ou pas de version actuelle pour son type de site
+- Liste des URL filtrable par situation (« Mise à jour disponible », « Mise à jour mineure disponible ») ; listes des sites et des plugins installés (quels clients ont tel plugin)
 - Accueil du module : URL des sites en service par situation, sites en service par type
 - Menu réductible à ses icônes (entrée « Réduire le menu », framework NSINFO)
 - Menu « Réglages » du module avec un droit dédié (« Accéder aux réglages du module ») : menu masqué sans ce droit

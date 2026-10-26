@@ -1,5 +1,10 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 23.0.4 - 26/10/2026
+- Création d'un site : le type de site passe avant le nom du site, qui n'est plus obligatoire (le formulaire le remplit avec le libellé du type choisi tant qu'il n'a pas été saisi ; vide, il reprend le libellé du type de site, même désactivé, à la création et à la modification)
+- Situation d'une URL : « Mise à jour mineure disponible » (badge vert clair) quand la version installée est de la même version majeure que la version de référence (24 pour 24.0.2), « Mise à jour disponible » (orange) sinon ; filtre, tableau de bord et liste des sites
+- Import du fichier JSON et listes de plugins : les modules désactivés (« enabled » : false) ne sont plus pris en compte
+
 ## 23.0.3 - 26/10/2026
 - Fiche module : produit/service du module (modifiable directement par son crayon), donné à ses plugins sans produit sur tous les sites et utilisé en priorité à l'import et à la liaison automatique
 - Fiche site : nom de chaque plugin relié à la fiche de son module

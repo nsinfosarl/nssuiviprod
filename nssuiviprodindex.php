@@ -165,7 +165,7 @@ $urllisturls = dol_buildpath('/nssuiviprod/core/url/siteurl_list.php', 1);
 print '<div class="div-table-responsive-no-min">';
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><th>'.$langs->trans('UrlsBySituation').'</th><th class="right">'.$langs->trans('Nb').'</th></tr>';
-foreach (array(SiteUrl::SITUATION_UPDATE, SiteUrl::SITUATION_UPTODATE, SiteUrl::SITUATION_UNKNOWN, SiteUrl::SITUATION_NOCURRENT) as $situation) {
+foreach (array(SiteUrl::SITUATION_UPDATE, SiteUrl::SITUATION_MINOR, SiteUrl::SITUATION_UPTODATE, SiteUrl::SITUATION_UNKNOWN, SiteUrl::SITUATION_NOCURRENT) as $situation) {
 	print '<tr class="oddeven">';
 	print '<td><a href="'.$urllisturls.'?search_situation='.urlencode($situation).'">'.SiteUrl::getSituationBadge($situation).'</a></td>';
 	print '<td class="right">'.(isset($bysituation[$situation]) ? $bysituation[$situation] : 0).'</td>';

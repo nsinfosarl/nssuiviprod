@@ -913,14 +913,14 @@ while ($i < $imaxinloop) {
 			if ($key == 'status' && !empty($arrayfields['su.versions']['checked'])) {
 				// One line by URL, aligned on the URL column; colored by situation (current version of the type of site)
 				$situationlabels = SiteUrl::getSituationLabels();
-				$situationtypes = array(SiteUrl::SITUATION_UPTODATE => 'success', SiteUrl::SITUATION_UPDATE => 'warning');
+				$situationtypes = array(SiteUrl::SITUATION_UPTODATE => 'success', SiteUrl::SITUATION_UPDATE => 'warning', SiteUrl::SITUATION_MINOR => 'success');
 				$currentversion = SiteUrl::getCurrentVersion((int) $object->fk_typesite);
 				print '<td class="center nowraponall">';
 				foreach ($siteurls as $objurl) {
 					$situation = SiteUrl::computeSituation((int) $object->fk_typesite, (string) $objurl->version);
 					print '<div title="'.dol_escape_htmltag($situationlabels[$situation].($currentversion !== '' ? ' ('.$langs->trans('NssuiviprodCurrentVersion').' : '.$currentversion.')' : '')).'">';
 					if ((string) $objurl->version !== '') {
-						print dolGetBadge(dol_escape_htmltag($objurl->version), '', isset($situationtypes[$situation]) ? $situationtypes[$situation] : 'secondary');
+						print SiteUrl::getBadge(dol_escape_htmltag($objurl->version), $situation, isset($situationtypes[$situation]) ? $situationtypes[$situation] : 'secondary');
 					} else {
 						print '<span class="opacitymedium">-</span>';
 					}

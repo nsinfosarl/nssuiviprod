@@ -111,6 +111,7 @@ SiteReopen = Put back in service
 Situation = Situation
 SituationUpToDate = Up to date
 SituationUpdate = Update available
+SituationMinor = Minor update available
 SituationUnknown = Version not set
 SitesInServiceByType = Sites in service by type
 ErrorPluginProductOrLabelRequired = Set a product or the name of the plugin.

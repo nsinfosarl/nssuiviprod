@@ -112,6 +112,7 @@ SiteReopen = Remettre en service
 Situation = Situation
 SituationUpToDate = À jour
 SituationUpdate = Mise à jour disponible
+SituationMinor = Mise à jour mineure disponible
 SituationUnknown = Version non renseignée
 SitesInServiceByType = Sites en service par type
 ErrorPluginProductOrLabelRequired = Indiquez un produit ou le nom du plugin.

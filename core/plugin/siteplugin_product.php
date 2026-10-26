@@ -129,6 +129,10 @@ if (!is_array($plugins)) {
 	setEventMessages($tmpplugin->error, $tmpplugin->errors, 'errors');
 	$plugins = array();
 }
+// Plugins whose module is disabled on the site are not listed
+$plugins = array_filter($plugins, function ($plugin) {
+	return (string) $plugin->module_enabled !== '0';
+});
 
 print '<br>';
 print load_fiche_titre($langs->trans('NssuiviprodTabProduct').'<span class="opacitymedium colorblack paddingleft">('.count($plugins).')</span>', '', $tmpplugin->picto);

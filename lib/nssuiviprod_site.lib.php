@@ -163,6 +163,39 @@ function nssuiviprodGetDictionary($db, $table)
 }
 
 /**
+ * Return the script that fills the name of the site with the label of the selected type of site: when the name is empty or
+ * still holds the label of the previously selected type (a name typed by the user is never replaced)
+ *
+ * @return	string		HTML code
+ */
+function nssuiviprodSiteLabelScript()
+{
+	return '<script type="text/javascript">
+jQuery(document).ready(function() {
+	var typefield = jQuery("select[name=\'fk_typesite\']");
+	var labelfield = jQuery("input[name=\'label\']");
+	if (!typefield.length || !labelfield.length) {
+		return;
+	}
+	function typelabel() {
+		return (typefield.val() > 0 ? jQuery.trim(typefield.find("option:selected").text()) : "");
+	}
+	var previous = typelabel();
+	if (labelfield.val() === "") {
+		labelfield.val(previous);
+	}
+	typefield.on("change", function() {
+		var current = typelabel();
+		if (labelfield.val() === "" || labelfield.val() === previous) {
+			labelfield.val(current);
+		}
+		previous = current;
+	});
+});
+</script>';
+}
+
+/**
  * Return the information shown under the reference in the banner of all the tabs of a site: label, thirdparty and type,
  * each with a pencil to change it (edited in the banner of the card of the site: actions editbanner_label, editbanner_thirdparty,
  * editbanner_typesite, saved by setbanner_label, setbanner_thirdparty, setbanner_typesite of site_card.php)
@@ -200,7 +233,7 @@ function nssuiviprodSiteBannerRef($object, $action = '')
 
 	// Label of the site
 	if ($action == 'editbanner_label' && $canedit) {
-		$out .= $editform('setbanner_label', '<input type="text" name="label" class="minwidth300" maxlength="255" required value="'.dol_escape_htmltag((string) $object->label).'" autofocus>');
+		$out .= $editform('setbanner_label', '<input type="text" name="label" class="minwidth300" maxlength="255" value="'.dol_escape_htmltag((string) $object->label).'" autofocus>');
 	} else {
 		$out .= '<strong>'.dol_escape_htmltag((string) $object->label).'</strong>'.$pencil('editbanner_label', 'SiteLabel');
 	}

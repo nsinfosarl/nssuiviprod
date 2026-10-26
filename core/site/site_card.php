@@ -218,7 +218,7 @@ if (empty($reshook)) {
 	if (in_array($action, array('setbanner_label', 'setbanner_thirdparty', 'setbanner_typesite')) && $permissiontoadd && $object->id > 0 && $object->status != $object::STATUS_CANCELED) {
 		if ($action == 'setbanner_label') {
 			$object->label = trim(GETPOST('label', 'alphanohtml'));
-			$errorfield = ($object->label === '' ? 'SiteLabel' : '');
+			$errorfield = '';	// Empty: the type of site is used
 		} elseif ($action == 'setbanner_thirdparty') {
 			$object->fk_soc = GETPOSTINT('fk_soc');
 			require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
@@ -700,6 +700,8 @@ if ($action == 'create') {
 
 	print dol_get_fiche_end();
 
+	print nssuiviprodSiteLabelScript();	// Name of the site filled with the type of site
+
 	print $form->buttonsSaveCancel("Create");
 
 	print '</form>';
@@ -735,6 +737,8 @@ if (($id || $ref) && $action == 'edit') {
 	print '</table>';
 
 	print dol_get_fiche_end();
+
+	print nssuiviprodSiteLabelScript();
 
 	print $form->buttonsSaveCancel();
 
@@ -1075,6 +1079,9 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		$pluginsbyurl[(int) $tmpurl->id] = array();
 	}
 	foreach ($allplugins as $tmpplugin) {
+		if ((string) $tmpplugin->module_enabled === '0') {
+			continue;	// Module disabled on the site: not listed
+		}
 		$pluginsbyurl[isset($pluginsbyurl[(int) $tmpplugin->fk_siteurl]) ? (int) $tmpplugin->fk_siteurl : 0][] = $tmpplugin;
 	}
 	$pluginurl = GETPOSTINT('pluginurl');
