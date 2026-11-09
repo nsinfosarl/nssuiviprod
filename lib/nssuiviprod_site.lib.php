@@ -47,6 +47,20 @@ function sitePrepareHead($object)
 	$head[$h][2] = 'card';
 	$h++;
 
+	// Plugins installed on the URLs of the site: summary of the versions and one tab per URL
+	$nbplugins = 0;
+	$sql = "SELECT COUNT(*) as nb FROM ".$db->prefix()."nssuiviprod_siteplugin WHERE fk_site = ".((int) $object->id);
+	$resql = $db->query($sql);
+	if ($resql) {
+		$obj = $db->fetch_object($resql);
+		$nbplugins = ($obj ? (int) $obj->nb : 0);
+		$db->free($resql);
+	}
+	$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_card.php", 1), ['id' => $object->id, 'tab' => 'plugins']).'#siteplugins';
+	$head[$h][1] = img_picto('', 'fa-puzzle-piece', 'class="pictofixedwidth" style="color: #5A2D82"').$langs->trans('SitePlugins').($nbplugins > 0 ? '<span class="badge marginleftonlyshort">'.$nbplugins.'</span>' : '');
+	$head[$h][2] = 'plugins';
+	$h++;
+
 	if ($showtabofpagecontact) {
 		$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_contact.php", 1), ['id' => $object->id]);
 		$head[$h][1] = $langs->trans("Contacts");
@@ -264,6 +278,118 @@ function nssuiviprodSiteBannerRef($object, $action = '')
 		$out .= $pencil('editbanner_typesite', 'SiteType');
 	}
 	$out .= '</div>';
+
+	return $out;
+}
+
+
+/**
+ * Summary of the plugins of a site : one row per module, one column per URL (instance) with the installed version, the
+ * absence of a module on an URL flagged, the different versions and the version of the Dolistore
+ *
+ * @param	array<int,SiteUrl>		$urls			URLs of the site (id => SiteUrl), in the order of the tabs
+ * @param	array<int,SitePlugin>	$allplugins		Plugins of the site
+ * @return	string							HTML
+ */
+function nssuiviprodPluginSummary($urls, $allplugins)
+{
+	global $langs;
+
+	// Modules not listed (setup, sub-tab "Plugins summary"): hidden, shown in grey with the box "Show the ignored modules"
+	$ignored = array_filter(array_map('intval', explode(',', getDolGlobalString('NSSUIVIPROD_SUMMARY_IGNORED'))));
+
+	$langs->load('nssuiviprod@nssuiviprod');
+	$rows = array();
+	foreach ($allplugins as $plugin) {
+		$urlid = (int) $plugin->fk_siteurl;
+		if ((string) $plugin->module_enabled === '0' || !isset($urls[$urlid])) {
+			continue;	// Module disabled on the site, or plugin without URL: not compared
+		}
+		$key = ((int) $plugin->fk_module > 0 ? 'm'.(int) $plugin->fk_module : 'l'.dol_strtolower(trim((string) $plugin->label)));
+		if (!isset($rows[$key])) {
+			$rows[$key] = array('label' => (string) $plugin->label, 'publisher' => (string) $plugin->publisher, 'plugin' => $plugin, 'versions' => array());
+		}
+		if (!isset($rows[$key]['versions'][$urlid])) {
+			$rows[$key]['versions'][$urlid] = (string) $plugin->version;
+		}
+	}
+	if (!count($rows)) {
+		return '<div class="opacitymedium">'.$langs->trans('PluginSummaryEmpty').'</div>';
+	}
+	uasort($rows, function ($a, $b) {
+		return strcasecmp($a['label'], $b['label']);
+	});
+
+	$nburls = count($urls);
+	$nbissues = 0;
+	$nbabsences = 0;
+	$nbignored = 0;
+	$body = '';
+	foreach ($rows as $key => $row) {
+		$isignored = (substr($key, 0, 1) == 'm' && in_array((int) substr($key, 1), $ignored));
+		$present = $row['versions'];
+		$max = '';
+		foreach ($present as $version) {
+			if ($version !== '' && ($max === '' || version_compare($version, $max, '>'))) {
+				$max = $version;
+			}
+		}
+		$nbabsent = $nburls - count($present);
+		$different = (count(array_unique(array_map('strval', $present))) > 1);
+		$issue = ($nbabsent > 0 || $different);
+		if ($isignored) {
+			$nbignored++;
+		} else {
+			$nbabsences += $nbabsent;
+			$nbissues += ($issue ? 1 : 0);
+		}
+
+		$module = $row['plugin']->getModule();
+		$name = dol_escape_htmltag($row['label']);
+		if ($module) {
+			$name = '<a href="'.dol_buildpath('/nssuiviprod/core/module/pluginmodule_card.php', 1).'?id='.((int) $module->id).'" title="'.dol_escape_htmltag($langs->trans('ShowPluginModule')).'">'.$name.'</a>';
+		}
+		$body .= '<tr class="oddeven nssuiviprod-sumrow" data-issue="'.($issue ? 1 : 0).'" data-ignored="'.($isignored ? 1 : 0).'"'.($isignored ? ' style="display: none; opacity: 0.5"' : '').'>';
+		$body .= '<td class="tdoverflowmax200" title="'.dol_escape_htmltag($row['publisher']).'">'.$name.($row['publisher'] !== '' ? '<span class="opacitymedium small" style="display: block">'.dol_escape_htmltag($row['publisher']).'</span>' : '').'</td>';
+		// Dolistore: links and last version (in orange when newer than the oldest version installed)
+		$oldest = '';
+		foreach ($present as $version) {
+			if ($version !== '' && ($oldest === '' || version_compare($version, $oldest, '<'))) {
+				$oldest = $version;
+			}
+		}
+		$body .= '<td class="nowraponall">'.$row['plugin']->getLinks('dolistore').($module ? ' '.$module->getDolistoreVersionBadge($oldest) : '').'</td>';
+		foreach ($urls as $urlid => $url) {
+			$body .= '<td class="center nowraponall">';
+			if (!array_key_exists($urlid, $present)) {
+				$body .= '<span class="badge badge-status8 classfortooltip" title="'.dol_escape_htmltag($langs->trans('PluginSummaryAbsentHelp')).'">'.img_picto('', 'fa-times-circle', 'class="pictofixedwidth"').$langs->trans('PluginSummaryAbsent').'</span>';
+			} elseif ($present[$urlid] !== '' && $max !== '' && version_compare($present[$urlid], $max, '<')) {
+				$body .= '<strong style="color: #E67E22" class="classfortooltip" title="'.dol_escape_htmltag($langs->trans('PluginSummaryOlder', $max)).'">'.dol_escape_htmltag($present[$urlid]).'</strong>';
+			} else {
+				$body .= dol_escape_htmltag($present[$urlid]);
+			}
+			$body .= '</td>';
+		}
+		$body .= '</tr>';
+	}
+
+	$out = '<div class="marginbottomonly">';
+	$out .= '<span class="opacitymedium">'.$langs->trans('PluginSummaryCount', count($rows) - $nbignored, $nbissues, $nbabsences).'</span>';
+	$out .= ' &nbsp; <label class="nowraponall cursorpointer"><input type="checkbox" id="nssuiviprodsumonly"> '.$langs->trans('PluginSummaryOnlyIssues').'</label>';
+	if ($nbignored > 0) {
+		$out .= ' &nbsp; <label class="nowraponall cursorpointer"><input type="checkbox" id="nssuiviprodsumignored"> '.$langs->trans('PluginSummaryShowIgnored', $nbignored).'</label>';
+	}
+	$out .= '</div>';
+	$out .= '<div class="div-table-responsive-no-min"><table class="noborder centpercent" id="nssuiviprodsummary">';
+	$out .= '<tr class="liste_titre"><td>'.$langs->trans('PluginLabel').'</td><td>'.img_picto('Dolistore', 'fa-store', 'class="pictofixedwidth opacitymedium"').'Dolistore</td>';
+	foreach ($urls as $url) {
+		$label = SiteUrl::getEnvironmentBadge($url->environment, 1).(trim((string) $url->label) !== '' ? ' '.dol_escape_htmltag($url->label) : '');
+		// The address of the URL is the tooltip of the whole header (the tooltip of the icon of the environment is not shown)
+		$out .= '<td class="center nowraponall" title="'.dol_escape_htmltag($url->url).'"><span style="pointer-events: none">'.$label.'</span></td>';
+	}
+	$out .= '</tr>';
+	$out .= $body.'</table></div>';
+	$out .= '<script nonce="'.getNonce().'">jQuery(function() { function filterSummary() { var only = jQuery("#nssuiviprodsumonly").is(":checked"), ign = jQuery("#nssuiviprodsumignored").is(":checked"); jQuery("#nssuiviprodsummary tr.nssuiviprod-sumrow").each(function() { var r = jQuery(this); r.toggle((ign || r.attr("data-ignored") !== "1") && (!only || r.attr("data-issue") === "1")); }); } jQuery("#nssuiviprodsumonly, #nssuiviprodsumignored").on("change", filterSummary); });</script>';
 
 	return $out;
 }

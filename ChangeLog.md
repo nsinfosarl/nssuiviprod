@@ -1,5 +1,12 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 23.0.5 - 09/11/2026
+- Réglages, sous-onglet « Synthèse » : liste des modules non listés dans la synthèse des plugins d'un site (choix multiple, enregistré au changement ; le champ prend toute la largeur et s'agrandit sur plusieurs lignes selon le nombre de modules choisis) ; la synthèse les masque et une case « Afficher les n module(s) ignoré(s) » permet de les voir quand même (en grisé) ; en-tête de chaque URL de la synthèse : l'adresse de l'URL s'affiche au survol
+- Fiche d'un site : nouvel onglet « Plugins » (à côté de Site, Notes…) qui reprend la section des plugins installés ; il s'ouvre sur un sous-onglet « Synthèse » : un tableau des modules en lignes et des URL (instances) en colonnes avec la version installée, l'absence d'un module sur une URL signalée (badge « Absent »), les versions plus anciennes que celle installée ailleurs en orange, la colonne Dolistore (liens et dernière version, en orange si plus récente) et une case « Seulement les écarts » ; les onglets de chaque URL suivent
+- Réglages : les sections sont rangées en sous-onglets verticaux (Dictionnaires, Plugins installés, Dolistore, Référentiel des versions, Modèles de numérotation) ; le dernier sous-onglet ouvert est mémorisé
+- Réglages : valeur par défaut déclarée sur chaque option (plugins affichés sur les services : oui, sur les produits : non, vérification Dolistore automatique : oui, plusieurs vérifications par jour : non, adresse de l'API) ; le picto « Remettre par défaut » apparaît quand la valeur diffère (identiques à celles posées à l'activation)
+- Onglet « Sauvegarde des paramètres » dans l'administration (page partagée nsinfo/admin/config_module.php, juste avant ChangeLog) : export des paramètres du module dans un fichier JSON et import sur un autre Dolibarr ; framework NSINFO 23.9.2 minimum exigé à l'activation
+
 ## 23.0.4 - 26/10/2026
 - Création d'un site : le type de site passe avant le nom du site, qui n'est plus obligatoire (le formulaire le remplit avec le libellé du type choisi tant qu'il n'a pas été saisi ; vide, il reprend le libellé du type de site, même désactivé, à la création et à la modification)
 - Situation d'une URL : « Mise à jour mineure disponible » (badge vert clair) quand la version installée est de la même version majeure que la version de référence (24 pour 24.0.2), « Mise à jour disponible » (orange) sinon ; filtre, tableau de bord et liste des sites

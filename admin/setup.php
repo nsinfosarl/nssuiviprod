@@ -81,15 +81,15 @@ if (isModEnabled('product') || isModEnabled('service')) {
 	if (isModEnabled('categorie')) {
 		$arrayofparameters['NSSUIVIPROD_PLUGIN_TAG'] = array('type' => 'seltags', 'typtag' => 'product', 'Tooltip' => 1);
 	}
-	$arrayofparameters['NSSUIVIPROD_SHOW_ON_SERVICES'] = array('type' => 'bool', 'Tooltip' => 1);
-	$arrayofparameters['NSSUIVIPROD_SHOW_ON_PRODUCTS'] = array('type' => 'bool', 'Tooltip' => 1);
+	$arrayofparameters['NSSUIVIPROD_SHOW_ON_SERVICES'] = array('type' => 'bool', 'default' => 1, 'Tooltip' => 1);
+	$arrayofparameters['NSSUIVIPROD_SHOW_ON_PRODUCTS'] = array('type' => 'bool', 'default' => 0, 'Tooltip' => 1);
 	$arrayofparameters['TABFIN'] = array('type' => 'tabfin');
 }
 // Dolistore: check of the versions launched automatically after the import of the JSON file of the external modules
 $arrayofparameters['NSSUIVIPROD_TITLEDOLISTORE'] = array('type' => 'titletab', 'title' => 'NssuiviprodTitleDolistore', 'picto' => 'fa-store_fas_#22A7D8');
 $arrayofparameters['TABDEB2'] = array('type' => 'tabdeb');
-$arrayofparameters['NSSUIVIPROD_DOLISTORE_AUTO'] = array('type' => 'bool', 'Tooltip' => 1);
-$arrayofparameters['NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY'] = array('type' => 'bool', 'Tooltip' => 1);
+$arrayofparameters['NSSUIVIPROD_DOLISTORE_AUTO'] = array('type' => 'bool', 'default' => 1, 'Tooltip' => 1);
+$arrayofparameters['NSSUIVIPROD_DOLISTORE_SEVERAL_PER_DAY'] = array('type' => 'bool', 'default' => 0, 'Tooltip' => 1);
 $arrayofparameters['NSSUIVIPROD_DOLISTORE_API_URL'] = array('type' => 'text', 'size' => 50, 'default' => 'https://www.dolistore.com/api/', 'Tooltip' => 1);
 $arrayofparameters['TABFIN2'] = array('type' => 'tabfin');
 
@@ -105,6 +105,23 @@ $defaultvalue = isset($arrayofparameters[$var]['default']) ? $arrayofparameters[
 include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
 
 nsinfoAction($action, $var, $value, $vartxt, $varround, $valuetxt, $defaultvalue, $varcolor, $varlist, '', '', $arrayofparameters);
+
+// Modules not listed in the summary of the plugins of a site (tab "Plugins" of the card): saved at each change (ajax, answer in JSON)
+if ($action == 'setsummaryignored') {
+	top_httphead('application/json');
+	if (GETPOST('token', 'alpha') != currentToken() || !$user->admin) {
+		print json_encode(array('saved' => false, 'message' => $langs->transnoentities('SecurityTokenHasExpiredSoActionHasBeenCanceledPleaseRetry')));
+		exit;
+	}
+	$ids = array_values(array_unique(array_filter(array_map('intval', (array) GETPOST('ignored', 'array:int')))));
+	if (count($ids)) {
+		$res = dolibarr_set_const($db, 'NSSUIVIPROD_SUMMARY_IGNORED', implode(',', $ids), 'chaine', 0, '', $conf->entity);
+	} else {
+		$res = dolibarr_del_const($db, 'NSSUIVIPROD_SUMMARY_IGNORED', $conf->entity);
+	}
+	print json_encode(array('saved' => ($res > 0 || $res === 0), 'message' => ''));
+	exit;
+}
 
 // Current version of each type of site (format x.y.z, empty = latest enabled version of the referential)
 if ($action == 'setcurrentversions') {	// Access to the page already checked (administrator or right on the setup)
@@ -174,11 +191,12 @@ print dol_get_fiche_head($head, 'settings', $langs->trans("Settings"), -1, "nssu
 if (getDolGlobalString('NSSUIVIPROD_DOLISTORE_API_URL') === '') {
 	$conf->global->NSSUIVIPROD_DOLISTORE_API_URL = $arrayofparameters['NSSUIVIPROD_DOLISTORE_API_URL']['default'];
 }
+ob_start();
 nsinfoSetup($arrayofparameters);
+$html = ob_get_clean();
 
-// Current version of each type of site
-print '<br>';
-print load_fiche_titre($langs->trans('NssuiviprodCurrentVersions'), '', 'fa-code-branch_fas_#14182B');
+// Current version of each type of site (sub-tab)
+ob_start();
 print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="setcurrentversions">';
@@ -191,11 +209,43 @@ foreach (nssuiviprodGetDictionary($db, 'c_nssuiviprod_typesite') as $typeid => $
 print '</table>';
 print '<div class="center"><input type="submit" class="button button-save" value="'.$langs->trans('Save').'"></div>';
 print '</form>';
+$versionshtml = ob_get_clean();
 
-// Numbering models of the sites
-print '<br>';
-print load_fiche_titre($langs->trans("NumberingModules").' : '.$langs->trans("Sites"), '', 'fa-globe_fas_#3879B2');
+// Modules not listed in the summary of the plugins (sub-tab)
+dol_include_once('/nssuiviprod/class/pluginmodule.class.php');
+ob_start();
+$tmpmodule = new PluginModule($db);
+$allmodules = $tmpmodule->fetchAll('ASC', 't.ref', 0, 0, '');
+$listmodules = array();
+if (is_array($allmodules)) {
+	foreach ($allmodules as $tmpmod) {
+		$listmodules[(int) $tmpmod->id] = trim((string) $tmpmod->label) !== '' ? (string) $tmpmod->label : (string) $tmpmod->ref;
+	}
+}
+$ignoredids = array_filter(array_map('intval', explode(',', getDolGlobalString('NSSUIVIPROD_SUMMARY_IGNORED'))));
+print '<div class="opacitymedium marginbottomonly">'.$langs->trans('NssuiviprodSummaryIgnoredHelp').'</div>';
+print '<table class="noborder centpercent"><tr class="liste_titre"><td>'.$langs->trans('Parameter').'</td><td>'.$langs->trans('Value').'</td></tr>';
+print '<tr class="oddeven"><td class="titlefield">'.$langs->trans('NssuiviprodSummaryIgnored').'</td><td>';
+// The field takes the width of the cell and grows with the chosen modules (tags on several lines)
+print '<style nonce="'.getNonce().'">#summaryignored + .select2-container, #summaryignored ~ .select2-container { width: 100% !important; } #summaryignored ~ .select2-container .select2-selection--multiple { height: auto !important; min-height: 30px; } #summaryignored ~ .select2-container .select2-selection__rendered { display: flex !important; flex-wrap: wrap; height: auto !important; white-space: normal !important; }</style>';
+print $form->multiselectarray('summaryignored', $listmodules, $ignoredids, 0, 0, 'centpercent', 0, 600);
+print ' <span id="summaryignoredmark" style="font-weight: bold"></span>';
+print '</td></tr></table>';
+print '<script nonce="'.getNonce().'">
+jQuery(function($) {
+	$("#summaryignored").on("change", function() {
+		var mark = $("#summaryignoredmark").css("color", "#888").attr("title", "").text("\u2026");
+		$.post(window.location.pathname, {action: "setsummaryignored", token: '.json_encode(newToken()).', ignored: $(this).val() || []}, function(d) {
+			if (d && d.saved) { mark.css("color", "#2e9e4f").text("\u2714"); setTimeout(function() { mark.text(""); }, 1000); }
+			else { mark.css("color", "#d9534f").attr("title", d && d.message ? d.message : "").text("\u2716"); }
+		}, "json").fail(function() { mark.css("color", "#d9534f").text("\u2716"); });
+	});
+});
+</script>';
+$summaryhtml = ob_get_clean();
 
+// Numbering models of the sites (sub-tab)
+ob_start();
 print '<table class="noborder centpercent">';
 print '<tr class="liste_titre">';
 print '<td>'.$langs->trans("Name").'</td>';
@@ -285,6 +335,59 @@ foreach ($dirmodels as $reldir) {
 	closedir($handle);
 }
 print "</table>\n";
+$numberinghtml = ob_get_clean();
+
+// Vertical tabs (framework NSINFO): one sub-tab per section of the setup, switched by the script below
+$sections = array();
+if ($user->admin) {
+	$sections[] = array($langs->trans('NssuiviprodDictionaries'), 'fa-book', '#22A7D8');
+}
+if (isModEnabled('product') || isModEnabled('service')) {
+	$sections[] = array($langs->trans('SitePlugins'), 'fa-puzzle-piece', '#5A2D82');
+}
+$sections[] = array($langs->trans('NssuiviprodTitleDolistore'), 'fa-store', '#22A7D8');
+$parts = preg_split('/(?=<table class="centpercent notopnoleftnoright table-fiche-title)/', $html, -1, PREG_SPLIT_NO_EMPTY);
+$parts = array_values(array_filter($parts, function ($part) {
+	return trim($part) !== '';
+}));
+if (count($parts) == count($sections)) {
+	$sections[] = array($langs->trans('PluginSummary'), 'fa-table', '#553885');
+	$parts[] = $summaryhtml;
+	$sections[] = array($langs->trans('NssuiviprodCurrentVersions'), 'fa-code-branch', '#14182B');
+	$parts[] = $versionshtml;
+	$sections[] = array($langs->trans('NumberingModules').' : '.$langs->trans('Sites'), 'fa-globe', '#3879B2');
+	$parts[] = $numberinghtml;
+
+	$vhead = array();
+	foreach ($sections as $i => $section) {
+		$vhead[] = array('#section'.$i, '<i class="fas '.$section[1].' paddingright pictofixedwidth" style="color: '.$section[2].';"></i>'.dol_escape_htmltag($section[0]), 'section'.$i);
+	}
+	nsinfoVerticalTabsStart($vhead, '');
+	foreach ($parts as $i => $part) {
+		// The sub-tab already gives the title of the section
+		$part = preg_replace('#^\s*<table class="centpercent notopnoleftnoright table-fiche-title.*?</table>\s*#s', '', $part, 1);
+		print '<div class="nssuiviprod-section" data-section="'.$i.'">'.$part.'</div>';
+	}
+	print '<script>
+jQuery(function() {
+	var tabs = jQuery(".nsinfo-vtabs-nav a"), sections = jQuery(".nssuiviprod-section"), key = "nssuiviprod_section";
+	function show(i) {
+		i = +i;
+		if (!sections.filter("[data-section=" + i + "]").length) { i = 0; }
+		tabs.removeClass("active").filter("[href=\\"#section" + i + "\\"]").addClass("active");
+		sections.hide().filter("[data-section=" + i + "]").show();
+		try { window.localStorage.setItem(key, i); } catch (e) {}
+	}
+	var start = 0, m = /^#section(\\d+)$/.exec(window.location.hash || "");
+	if (m) { start = +m[1]; } else { try { start = +(window.localStorage.getItem(key) || 0); } catch (e) {} }
+	tabs.on("click", function(ev) { ev.preventDefault(); show((jQuery(this).attr("href") || "").replace("#section", "")); });
+	show(start);
+});
+</script>';
+	nsinfoVerticalTabsEnd();
+} else {
+	print $html.'<br>'.$summaryhtml.'<br>'.$versionshtml.'<br>'.$numberinghtml;
+}
 
 // Page end
 print dol_get_fiche_end();

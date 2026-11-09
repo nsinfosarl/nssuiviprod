@@ -57,6 +57,12 @@ function nssuiviprodAdminPrepareHead()
 
 	// Tabs of the NSINFO framework: their pages are for the administrators only
 	if ($user->admin) {
+		// Backup of the settings (shared page of nsinfo : export / import of the constants of the module in a JSON file), just before the ChangeLog
+		$head[$h][0] = dol_buildpath("/nsinfo/admin/config_module.php?namemodule=nssuiviprod", 1);
+		$head[$h][1] = '<i class="fas fa-save paddingright pictofixedwidth valignmiddle" style="color: #2E9E5B"></i>' . $langs->trans("NsinfoCfgTab");
+		$head[$h][2] = 'configmodule';
+		$h++;
+
 		$head[$h][0] = dol_buildpath("/nsinfo/admin/changelog_module.php?namemodule=nssuiviprod", 1);
 		$head[$h][1] = '<i class="fas fa-code-branch paddingright pictofixedwidth valignmiddle" style="color: #3879B2"></i>' . $langs->trans("NSINFOChangeLog");
 		$head[$h][2] = 'changelog';

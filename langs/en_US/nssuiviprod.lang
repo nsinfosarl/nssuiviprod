@@ -14,7 +14,7 @@ NssuiviprodDescription = Tracking of the sites of the customers (Dolibarr, WordP
 # Admin page
 #
 NssuiviprodSetup = Site tracking - Setup
-NssuiviprodErrorNsinfoRequired = The NSINFO framework version 23.8.0 or more is required: the module "NSINFO" (nsinfo) must be installed and enabled before enabling the module "Site tracking".
+NssuiviprodErrorNsinfoRequired = The NSINFO framework version 23.9.2 or more is required: the module "NSINFO" (nsinfo) must be installed and enabled before enabling the module "Site tracking".
 Settings = Settings
 
 
@@ -283,3 +283,13 @@ NSSUIVIPROD_SHOW_ON_PRODUCTS = Products: show the installations on the sites
 NSSUIVIPROD_SHOW_ON_PRODUCTS_Tooltip = Column "Installations on the sites" of the list of the products and tab of the product card (products linked to at least one plugin). Disabled: no column nor tab on the products. Disabled by default.
 PluginModuleProduct = Product/service
 PluginModuleProductHelp = Product or service of the module (category of the plugins of the setup): when saved, it is given to all the plugins of this module without product, on all the sites; it is then used first by the import and the automatic link.
+PluginSummary = Summary
+PluginSummaryEmpty = No module installed on the URLs of the site.
+PluginSummaryCount = %s module(s), %s with a difference (absence or different versions), %s absence(s)
+PluginSummaryOnlyIssues = Differences only
+PluginSummaryAbsent = Missing
+PluginSummaryAbsentHelp = This module is not installed (or not enabled) on this URL while it is on another one
+PluginSummaryOlder = Older than the version %s installed elsewhere
+NssuiviprodSummaryIgnored = Modules not listed in the summary
+NssuiviprodSummaryIgnoredHelp = The chosen modules are not listed in the summary of the plugins of a site (tab "Plugins" of the site card); a box shows them anyway.
+PluginSummaryShowIgnored = Show the %s ignored module(s)

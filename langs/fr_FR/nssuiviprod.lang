@@ -31,7 +31,7 @@ Settings = Réglages
 About = À propos
 NssuiviprodAbout = Suivi des sites - À propos
 
-NssuiviprodErrorNsinfoRequired = Le framework NSINFO version 23.8.0 ou plus est obligatoire : le module « NSINFO » (nsinfo) doit être installé et activé avant d'activer le module « Suivi des sites ».
+NssuiviprodErrorNsinfoRequired = Le framework NSINFO version 23.9.2 ou plus est obligatoire : le module « NSINFO » (nsinfo) doit être installé et activé avant d'activer le module « Suivi des sites ».
 
 #
 # Objects
@@ -284,3 +284,13 @@ NSSUIVIPROD_SHOW_ON_PRODUCTS = Produits : afficher les installations sur les sit
 NSSUIVIPROD_SHOW_ON_PRODUCTS_Tooltip = Colonne « Installations sur les sites » de la liste des produits et onglet de la fiche produit (produits reliés à au moins un plugin). Désactivé : pas de colonne ni d'onglet sur les produits. Désactivé par défaut.
 PluginModuleProduct = Produit/service
 PluginModuleProductHelp = Produit ou service du module (catégorie des plugins des réglages) : à l'enregistrement, il est donné à tous les plugins de ce module sans produit, sur tous les sites ; il sert ensuite en priorité à l'import et à la liaison automatique.
+PluginSummary = Synthèse
+PluginSummaryEmpty = Aucun module installé sur les URL du site.
+PluginSummaryCount = %s module(s), %s avec un écart (absence ou versions différentes), %s absence(s)
+PluginSummaryOnlyIssues = Seulement les écarts
+PluginSummaryAbsent = Absent
+PluginSummaryAbsentHelp = Ce module n'est pas installé (ou pas activé) sur cette URL alors qu'il l'est sur une autre
+PluginSummaryOlder = Version plus ancienne que la %s installée ailleurs
+NssuiviprodSummaryIgnored = Modules non listés dans la synthèse
+NssuiviprodSummaryIgnoredHelp = Les modules choisis ne sont pas listés dans la synthèse des plugins d'un site (onglet « Plugins » de la fiche site) ; une case permet de les afficher quand même.
+PluginSummaryShowIgnored = Afficher les %s module(s) ignoré(s)

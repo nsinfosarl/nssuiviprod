@@ -3,7 +3,7 @@
 ## Informations
 
 - Numéro du module : 172791
-- Dernière mise à jour : 26/10/2026
+- Dernière mise à jour : 09/11/2026
 - Éditeur : [NSINFO](https://www.ns-info.fr)
 - Thème : Eldy Menu
 - Licence : GPLv3
@@ -11,10 +11,10 @@
 
 ### Version
 
-- Version : 23.0.4
+- Version : 23.0.5
 - PHP : 7.4 - 8.3
 - Compatibilité : Dolibarr 20.0.0 - 24.0.x
-- NSINFO Framework : 23.8.0
+- NSINFO Framework : 23.9.4
 
 ## Liens
 
@@ -34,6 +34,7 @@ Nssuiviprod : Suivi des sites, sans aucune modification du Core.
 - URL du site (une par instance : production, développement, sandbox…) : type (accès direct, administration, API…), libellé facultatif (onglets des plugins : icône de l'environnement, puis libellé), version installée (numéro x.y.z), situation, date du dernier contrôle (date du jour par défaut sur la fiche URL et sur la ligne d'ajout des URL), complément en texte avancé ; ordre par glisser-déposer
 - Environnement de chaque URL (production, développement, sandbox) : icône de couleur en première colonne des listes d'URL, libellé en info-bulle
 - Plugins installés sur chaque URL : produit ou service Dolibarr, ou nom libre (plugin WordPress non référencé), avec leur version ; un onglet par URL sur la fiche site, avec recherche, sélection (cases à gauche) et suppression en masse, description du module sous son nom, colonne Éditeur, tri par clic sur les en-têtes ; plugins supprimés avec leur URL ; fiche plugin en onglets
+- Onglet « Plugins » de la fiche site : sous-onglet « Synthèse » (modules en lignes, URL en colonnes avec la version installée, absence d'un module sur une URL signalée, versions plus anciennes en orange, colonne Dolistore, filtre « Seulement les écarts », modules ignorés choisis dans les réglages et masquables / affichables d'une case) puis un sous-onglet par URL
 - Plugins en location ou non : icône de couleur en première colonne, bascule d'un clic sur la fiche site, actions de masse dans la liste des plugins
 - Version en cours sur le Dolistore (vérification depuis la fiche site ou par action de masse), mise en avant quand elle est plus récente que la version installée ; identification Dolistore mémorisée et réutilisée pour tous les clients
 - Liens vers le Dolistore (icône du Dolistore) et vers le site de l'éditeur de chaque plugin
@@ -59,7 +60,7 @@ Nssuiviprod : Suivi des sites, sans aucune modification du Core.
 
 ## Installation
 
-**Prérequis : le framework NSINFO (module « NS INFO ») doit être installé et activé, version 23.8.0 ou supérieure.**
+**Prérequis : le framework NSINFO (module « NS INFO ») doit être installé et activé, version 23.9.4 ou supérieure.**
 Sans lui, l'activation du module est refusée avec un message d'erreur.
 
 ### Méthode :
