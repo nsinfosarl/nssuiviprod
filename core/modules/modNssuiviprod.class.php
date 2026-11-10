@@ -66,7 +66,7 @@ class modNssuiviprod extends DolibarrModules
 			'css' => array('/nssuiviprod/css/nssuiviprod.css.php'),
 			/* BEGIN MODULEBUILDER HOOKSCONTEXTS */
 			'hooks' => array(
-				'data' => array('rowinterface', 'globalcard', 'productcard', 'productservicelist'),	// Drag and drop of the URLs of a site (permission in core/ajax/row.php), tab of the product card shown only when the product is linked to a plugin, column of the plugins in the list of the products
+				'data' => array('rowinterface', 'globalcard', 'productcard', 'productservicelist', 'main'),	// Drag and drop of the URLs of a site (permission in core/ajax/row.php), column of the plugins in the list of the products, tab of the product card shown only when the product is linked to a plugin : context main, loaded on every page, so that the tab is hidden on all the pages of the product (Documents, Notes, Agenda, Margins, statistics, tabs of the other modules...) whatever their contexts
 				'entity' => '0',
 			),
 			/* END MODULEBUILDER HOOKSCONTEXTS */

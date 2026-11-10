@@ -1,5 +1,8 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 23.0.7 - 10/11/2026
+- Fiche produit / service : l'onglet « Installations sur les sites » n'apparaît plus sur aucune page d'un produit qui n'est dans aucun site (Fichiers joints, Notes, Événements/Agenda, Marges, statistiques, onglets des autres modules : ces pages n'ont ni le contexte productcard ni globalcard) : contexte « main » ajouté aux hooks du module, chargé sur toutes les pages (désactiver puis réactiver le module)
+
 ## 23.0.6 - 09/11/2026
 - Import du JSON des modules externes : les changements de version sont signalés (message et événement du site : « N plugin(s) dont la version a changé : nom (ancienne → nouvelle) ») ; chaque plugin garde la version précédente et la date du changement (date du fichier JSON, sinon de l'import) : colonne « Date du changement de version » affichée par défaut dans la liste des plugins (colonne « Version précédente » au choix), et pastille ↑ / ↓ avec l'ancienne version à côté de la version (date au survol) ; nouvelles colonnes version_previous et version_date du plugin (ALTER dans sql/update_1.0.0.sql)
 - Fiche d'un site, onglet « Plugins » : titre « Plugins installés » supprimé (inutile, l'onglet le dit déjà), les sous-onglets Synthèse / URL remontent en haut

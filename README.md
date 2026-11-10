@@ -11,10 +11,10 @@
 
 ### Version
 
-- Version : 23.0.6
+- Version : 23.0.7
 - PHP : 7.4 - 8.3
 - Compatibilité : Dolibarr 20.0.0 - 24.0.x
-- NSINFO Framework : 23.9.5
+- NSINFO Framework : 23.9.7
 
 ## Liens
 
@@ -60,7 +60,7 @@ Nssuiviprod : Suivi des sites, sans aucune modification du Core.
 
 ## Installation
 
-**Prérequis : le framework NSINFO (module « NS INFO ») doit être installé et activé, version 23.9.5 ou supérieure.**
+**Prérequis : le framework NSINFO (module « NS INFO ») doit être installé et activé, version 23.9.7 ou supérieure.**
 Sans lui, l'activation du module est refusée avec un message d'erreur.
 
 ### Méthode :
