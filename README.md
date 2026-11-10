@@ -3,7 +3,7 @@
 ## Informations
 
 - Numéro du module : 172791
-- Dernière mise à jour : 09/11/2026
+- Dernière mise à jour : 10/11/2026
 - Éditeur : [NSINFO](https://www.ns-info.fr)
 - Thème : Eldy Menu
 - Licence : GPLv3
@@ -19,7 +19,7 @@
 ## Liens
 
 - Support & Assistance : [Forum dolibarr.fr](https://dolibarr.fr) / Par mail à contact@ns-info.fr
-- Support déclaration : [Ticket](https://support.ns-info.fr)
+- Support déclaration : [Ticket](https://support.ns-info.fr/)
 - Documentation : [Wiki](https://www.ns-info.fr/)
 - Dépôt GitHub : [nsinfosarl/nssuiviprod](https://github.com/nsinfosarl/nssuiviprod)
 - Nsinfo Framework : [Télécharger Nsinfo](https://www.dolistore.com/product.php?id=713)
