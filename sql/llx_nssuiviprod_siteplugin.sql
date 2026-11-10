@@ -70,6 +70,8 @@ CREATE TABLE llx_nssuiviprod_siteplugin(
 	dolistore_label varchar(255), 
 	fk_siteurl integer NOT NULL, 
 	dolistore_ref varchar(128), 
-	fk_module integer
+	fk_module integer, 
+	version_previous varchar(64), 
+	version_date datetime
 	-- END MODULEBUILDER FIELDS
 ) ENGINE=innodb;

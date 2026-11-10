@@ -337,6 +337,9 @@ foreach ($dirmodels as $reldir) {
 print "</table>\n";
 $numberinghtml = ob_get_clean();
 
+// Settings that are not at their default value are flagged, with the picto to reset them all
+print nsinfoDefaultsNotice($arrayofparameters);
+
 // Vertical tabs (framework NSINFO): one sub-tab per section of the setup, switched by the script below
 $sections = array();
 if ($user->admin) {

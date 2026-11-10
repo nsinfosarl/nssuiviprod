@@ -31,7 +31,7 @@ Settings = Réglages
 About = À propos
 NssuiviprodAbout = Suivi des sites - À propos
 
-NssuiviprodErrorNsinfoRequired = Le framework NSINFO version 23.9.2 ou plus est obligatoire : le module « NSINFO » (nsinfo) doit être installé et activé avant d'activer le module « Suivi des sites ».
+NssuiviprodErrorNsinfoRequired = Le framework NSINFO version 23.9.5 ou plus est obligatoire : le module « NSINFO » (nsinfo) doit être installé et activé avant d'activer le module « Suivi des sites ».
 
 #
 # Objects
@@ -294,3 +294,10 @@ PluginSummaryOlder = Version plus ancienne que la %s installée ailleurs
 NssuiviprodSummaryIgnored = Modules non listés dans la synthèse
 NssuiviprodSummaryIgnoredHelp = Les modules choisis ne sont pas listés dans la synthèse des plugins d'un site (onglet « Plugins » de la fiche site) ; une case permet de les afficher quand même.
 PluginSummaryShowIgnored = Afficher les %s module(s) ignoré(s)
+PluginJsonInsert=Insérer le JSON de mise à jour
+PluginJsonInsertHelp=Choisis le fichier JSON du module nslistmodexterne de cette instance : les plugins de cette URL sont ajoutés ou mis à jour, quelle que soit l'adresse indiquée dans le JSON.
+PluginVersionPrevious=Version précédente
+PluginVersionDate=Date du changement de version
+PluginVersionChangeHelp=Dernier changement de version apporté par un fichier JSON importé : version avant le changement et date du changement (date du fichier, sinon de l'import)
+PluginVersionChangedFrom=Ancienne version : %s
+PluginJsonChanged=%s plugin(s) dont la version a changé

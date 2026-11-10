@@ -1,5 +1,12 @@
 # CHANGELOG NSSUIVIPROD FOR [DOLIBARR ERP CRM](https://www.dolibarr.org)
 
+## 23.0.6 - 09/11/2026
+- Import du JSON des modules externes : les changements de version sont signalés (message et événement du site : « N plugin(s) dont la version a changé : nom (ancienne → nouvelle) ») ; chaque plugin garde la version précédente et la date du changement (date du fichier JSON, sinon de l'import) : colonne « Date du changement de version » affichée par défaut dans la liste des plugins (colonne « Version précédente » au choix), et pastille ↑ / ↓ avec l'ancienne version à côté de la version (date au survol) ; nouvelles colonnes version_previous et version_date du plugin (ALTER dans sql/update_1.0.0.sql)
+- Fiche d'un site, onglet « Plugins » : titre « Plugins installés » supprimé (inutile, l'onglet le dit déjà), les sous-onglets Synthèse / URL remontent en haut
+- Fiche d'un site, onglet « Plugins », sur l'onglet d'une URL (production, développement, sandbox) : choix du fichier JSON de mise à jour ; les plugins de cette URL sont ajoutés ou mis à jour quelle que soit l'adresse indiquée dans le JSON (l'URL doit appartenir au site), puis vérification Dolistore et liaison aux produits comme pour l'import habituel
+- Fiche d'un site, onglet « Plugins » : la page s'ouvre en haut (plus d'ancre qui faisait défiler jusqu'à la liste des plugins), après un clic sur l'onglet, sur un sous-onglet ou après une action
+- Réglages : avertissement en haut de page quand un réglage n'est pas à sa valeur par défaut (lien ↺ pour tout remettre par défaut)
+
 ## 23.0.5 - 09/11/2026
 - Réglages, sous-onglet « Synthèse » : liste des modules non listés dans la synthèse des plugins d'un site (choix multiple, enregistré au changement ; le champ prend toute la largeur et s'agrandit sur plusieurs lignes selon le nombre de modules choisis) ; la synthèse les masque et une case « Afficher les n module(s) ignoré(s) » permet de les voir quand même (en grisé) ; en-tête de chaque URL de la synthèse : l'adresse de l'URL s'affiche au survol
 - Fiche d'un site : nouvel onglet « Plugins » (à côté de Site, Notes…) qui reprend la section des plugins installés ; il s'ouvre sur un sous-onglet « Synthèse » : un tableau des modules en lignes et des URL (instances) en colonnes avec la version installée, l'absence d'un module sur une URL signalée (badge « Absent »), les versions plus anciennes que celle installée ailleurs en orange, la colonne Dolistore (liens et dernière version, en orange si plus récente) et une case « Seulement les écarts » ; les onglets de chaque URL suivent

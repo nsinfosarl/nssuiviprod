@@ -247,7 +247,7 @@ if (empty($reshook)) {
 	if (GETPOST('formfilteraction', 'alphanohtml') == 'listafterchangingselectedfields' && $object->id > 0) {
 		include_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 		dol_set_user_param($db, $conf, $user, array('MAIN_SELECTEDFIELDS_nssuiviprodsiteplugins' => (string) GETPOST('selectedfields', 'alphanohtml')));
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('plugin_fk_siteurl').'&tab=plugins#siteplugins');
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('plugin_fk_siteurl').'&tab=plugins');
 		exit;
 	}
 	// Label of the URL of the tab of the plugins (detail of the events of the agenda)
@@ -289,7 +289,7 @@ if (empty($reshook)) {
 			setEventMessages($langs->trans('NoRecordSelected'), null, 'warnings');
 			$action = '';
 		} else {
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('plugin_fk_siteurl').'&action=predeleteplugins&toselect='.implode(',', array_map('intval', $toselect)).'&tab=plugins#siteplugins');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('plugin_fk_siteurl').'&action=predeleteplugins&toselect='.implode(',', array_map('intval', $toselect)).'&tab=plugins');
 			exit;
 		}
 	}
@@ -313,7 +313,7 @@ if (empty($reshook)) {
 			nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtPluginsDeleted', $nbdeleted, $eventurllabel), $deletedlabels);
 		}
 		setEventMessages($langs->trans('RecordsDeleted', $nbdeleted), null, 'mesgs');
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins#siteplugins');
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins');
 		exit;
 	}
 	if ($action == 'addplugin' && $permissiontoadd && $object->id > 0) {
@@ -329,7 +329,7 @@ if (empty($reshook)) {
 		if ($siteplugin->fk_siteurl <= 0 || $tmpurl->fetch($siteplugin->fk_siteurl) <= 0 || (int) $tmpurl->fk_site != (int) $object->id) {
 			setEventMessages($langs->trans('ErrorFieldRequired', $langs->transnoentitiesnoconv('SiteUrl')), null, 'errors');
 		} elseif ($siteplugin->create($user) > 0) {
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.((int) $siteplugin->fk_siteurl).'&tab=plugins#siteplugins');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.((int) $siteplugin->fk_siteurl).'&tab=plugins');
 			exit;
 		} else {
 			setEventMessages($siteplugin->error, $siteplugin->errors, 'errors');
@@ -348,6 +348,8 @@ if (empty($reshook)) {
 	if ($action == 'importurl' && $permissiontoadd && $object->id > 0) {
 		$fk_siteurl = 0;
 		$content = false;
+		// Import from the tab of an URL (production, development, sandbox): the plugins go to this URL, whatever the instance of the file
+		$forcedurl = GETPOSTINT('import_siteurl');
 		if (GETPOST('fromlocal', 'alpha')) {
 			$localjsonfile = SitePlugin::getLocalJsonFilePath();
 			if (is_readable($localjsonfile)) {
@@ -364,6 +366,8 @@ if (empty($reshook)) {
 			$importerror = $langs->trans('ErrorPluginJsonNoFile');
 		} elseif (!is_array($data) || (isset($data['generator']) && $data['generator'] != 'nslistmodexterne') || empty($data['modules']) || !is_array($data['modules'])) {
 			$importerror = $langs->trans('ErrorPluginJsonInvalid');
+		} elseif ($forcedurl > 0) {
+			$fk_siteurl = $forcedurl;
 		} elseif (!preg_match('/^https?:\/\//i', $instanceurl)) {
 			$importerror = $langs->trans('ErrorUrlJsonNoInstance');
 		} else {
@@ -379,7 +383,9 @@ if (empty($reshook)) {
 		$tmpurl = new SiteUrl($db);
 		// URL of the instance: updated, or created with the type and the environment chosen in the form
 		if (!$importerror) {
-			if ($fk_siteurl > 0 && $tmpurl->fetch($fk_siteurl) > 0) {
+			if ($forcedurl > 0 && ($tmpurl->fetch($forcedurl) <= 0 || (int) $tmpurl->fk_site != (int) $object->id)) {
+				$importerror = $langs->trans('ErrorRecordNotFound');
+			} elseif ($fk_siteurl > 0 && $tmpurl->fetch($fk_siteurl) > 0) {
 				$tmpurl->version = ($dolversion !== '' ? $dolversion : $tmpurl->version);	// Exact Dolibarr version of the file
 				$tmpurl->date_check = dol_now();
 				if ($tmpurl->update($user) > 0) {
@@ -420,7 +426,7 @@ if (empty($reshook)) {
 		if ($importerror) {
 			$db->rollback();
 			setEventMessages($importerror, null, 'errors');
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'#siteurls');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.($forcedurl > 0 ? '&pluginurl='.$forcedurl.'&tab=plugins' : '#siteurls'));
 			exit;
 		}
 		$db->commit();
@@ -434,6 +440,9 @@ if (empty($reshook)) {
 		if (count($result['added'])) {
 			$details[] = $langs->transnoentitiesnoconv('PluginJsonAdded', count($result['added'])).' : '.implode(', ', $result['added']);
 		}
+		if (count($result['changed'])) {
+			$details[] = $langs->transnoentitiesnoconv('PluginJsonChanged', count($result['changed'])).' : '.implode(', ', $result['changed']);
+		}
 		if (count($result['missing'])) {
 			$details[] = $langs->transnoentitiesnoconv('PluginJsonMissing', count($result['missing'])).' : '.implode(', ', $result['missing']);
 		}
@@ -442,6 +451,9 @@ if (empty($reshook)) {
 		setEventMessages($langs->trans('PluginJsonImported', $result['created'], $result['updated'], $result['linked']), null, 'mesgs');
 		if (count($result['added'])) {
 			setEventMessages($langs->trans('PluginJsonAdded', count($result['added'])).' : '.dol_escape_htmltag(implode(', ', $result['added'])), null, 'warnings');
+		}
+		if (count($result['changed'])) {
+			setEventMessages($langs->trans('PluginJsonChanged', count($result['changed'])).' : '.dol_escape_htmltag(implode(', ', $result['changed'])), null, 'warnings');
 		}
 		if (count($result['missing'])) {
 			setEventMessages($langs->trans('PluginJsonMissing', count($result['missing'])).' : '.dol_escape_htmltag(implode(', ', $result['missing'])), null, 'warnings');
@@ -454,7 +466,7 @@ if (empty($reshook)) {
 			$afterimport = 1;
 			$action = 'checkdolistore';
 		} else {
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$fk_siteurl.'#siteurls');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$fk_siteurl.($forcedurl > 0 ? '&tab=plugins' : '#siteurls'));
 			exit;
 		}
 	}
@@ -504,7 +516,7 @@ if (empty($reshook)) {
 		if (!empty($afterimport)) {
 			$action = 'linkproducts';	// After an import: link to the products, with the Dolistore references found
 		} else {
-			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurlparam.'&tab=plugins#siteplugins');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurlparam.'&tab=plugins');
 			exit;
 		}
 	}
@@ -535,7 +547,7 @@ if (empty($reshook)) {
 				setEventMessages($langs->trans('PluginProductsLinked', $nb), null, 'mesgs');
 			}
 		}
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurlparam.'&tab=plugins#siteplugins');
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurlparam.'&tab=plugins');
 		exit;
 	}
 	// Set a plugin of the site rented or not rented (click on its icon)
@@ -549,7 +561,7 @@ if (empty($reshook)) {
 				nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtPluginModified', $child->ref), array($langs->transnoentitiesnoconv('NssuiviprodEvtFieldChange', $langs->transnoentitiesnoconv('PluginRental'), $langs->transnoentitiesnoconv($oldrental ? 'Yes' : 'No'), $langs->transnoentitiesnoconv(GETPOSTINT('value') ? 'Yes' : 'No'))));
 			}
 		}
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins#siteplugins');
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins');
 		exit;
 	}
 	// Change the order of the URLs of the site
@@ -583,7 +595,7 @@ if (empty($reshook)) {
 			nssuiviprodAddSiteEvent($db, $user, $object->id, $langs->transnoentitiesnoconv('NssuiviprodEvtMissingPluginsDeleted', $nbdeleted, $eventurllabel), $deletedlabels);
 		}
 		setEventMessages($langs->trans('RecordsDeleted', $nbdeleted), null, 'mesgs');
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins#siteplugins');
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins');
 		exit;
 	}
 	if (in_array($action, array('confirm_deleteurl', 'confirm_deleteplugin')) && $confirm == 'yes' && $permissiontoadd && $object->id > 0) {
@@ -595,7 +607,7 @@ if (empty($reshook)) {
 				setEventMessages($child->error, $child->errors, 'errors');
 			}
 		}
-		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.($action == 'confirm_deleteurl' ? '#siteurls' : '&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins#siteplugins'));
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$object->id.($action == 'confirm_deleteurl' ? '#siteurls' : '&pluginurl='.GETPOSTINT('pluginurl').'&tab=plugins'));
 		exit;
 	}
 
@@ -1101,7 +1113,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	}
 	$plugins = (isset($pluginsbyurl[$pluginurl]) ? $pluginsbyurl[$pluginurl] : array());
 	$withproduct = (isModEnabled('product') || isModEnabled('service'));
-	$backtocard = urlencode($_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurl.'&tab=plugins#siteplugins');
+	$backtocard = urlencode($_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$pluginurl.'&tab=plugins');
 	$urlparam = '?id='.$object->id.'&tab=plugins&pluginurl='.$pluginurl;
 	// Columns that can be added to the table of the plugins: the fields of the plugins not already shown (selector of the
 	// fields of the title of the table, choice saved for the user)
@@ -1111,7 +1123,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		if (empty($val['visible']) || in_array($key, $pluginfixedfields) || !dol_eval((string) $val['enabled'], 1)) {
 			continue;
 		}
-		$pluginarrayfields['p.'.$key] = array('label' => $val['label'], 'checked' => '0', 'enabled' => '1', 'position' => $val['position']);
+		$pluginarrayfields['p.'.$key] = array('label' => $val['label'], 'checked' => ($key == 'version_date' ? '1' : '0'), 'enabled' => '1', 'position' => $val['position']);
 	}
 	// Fields of the module of the plugins (identity and Dolistore information, read on the module)
 	$tmpmodule = new PluginModule($db);
@@ -1133,8 +1145,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		}
 	}
 
-	print '<br><a name="siteplugins"></a>';
-	print load_fiche_titre($langs->trans('SitePlugins'), '', $siteplugin->picto);
+	print '<a name="siteplugins"></a>';
 	if (!count($pluginsbyurl)) {
 		print '<div class="opacitymedium">'.$langs->trans('PluginNoUrlYet').'</div>';
 	} else {
@@ -1143,7 +1154,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		$head = array();
 		// First tab : summary of the versions of the modules by URL (absence of a module flagged, Dolistore version)
 		if (count($urls) > 0) {
-			$head[] = array($_SERVER['PHP_SELF'].'?id='.$object->id.'&plugintab=summary&tab=plugins#siteplugins', img_picto('', 'fa-table', 'class="pictofixedwidth" style="color: #553885"').$langs->trans('PluginSummary'), 'pluginsummary');
+			$head[] = array($_SERVER['PHP_SELF'].'?id='.$object->id.'&plugintab=summary&tab=plugins', img_picto('', 'fa-table', 'class="pictofixedwidth" style="color: #553885"').$langs->trans('PluginSummary'), 'pluginsummary');
 		} else {
 			$showsummary = false;
 		}
@@ -1155,7 +1166,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			} else {
 				$tablabel = $langs->trans('PluginNoUrl');
 			}
-			$head[] = array($_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$urlid.'&tab=plugins#siteplugins', $tablabel.'<span class="badge marginleftonlyshort">'.count($urlplugins).'</span>', 'pluginurl'.$urlid);
+			$head[] = array($_SERVER['PHP_SELF'].'?id='.$object->id.'&pluginurl='.$urlid.'&tab=plugins', $tablabel.'<span class="badge marginleftonlyshort">'.count($urlplugins).'</span>', 'pluginurl'.$urlid);
 		}
 		print dol_get_fiche_head($head, ($showsummary ? 'pluginsummary' : 'pluginurl'.$pluginurl), '', -1, '', 0, '', '', 0, 'pluginurltabs');
 
@@ -1169,7 +1180,7 @@ if ($showsummary) {
 		// Buttons of the tab
 		$morehtmlright = '';
 		if ($permissiontoadd && $nbmissing) {
-			$morehtmlright .= dolGetButtonTitle($langs->trans('PluginDeleteMissing').' ('.$nbmissing.')', '', 'fa fa-trash', $_SERVER['PHP_SELF'].$urlparam.'&action=deletemissingplugins&token='.newToken().'&tab=plugins#siteplugins');
+			$morehtmlright .= dolGetButtonTitle($langs->trans('PluginDeleteMissing').' ('.$nbmissing.')', '', 'fa fa-trash', $_SERVER['PHP_SELF'].$urlparam.'&action=deletemissingplugins&token='.newToken().'&tab=plugins');
 		}
 		if ($permissiontoadd && $withproduct && !empty($plugins)) {
 			$morehtmlright .= dolGetButtonTitle($langs->trans('PluginLinkProducts'), '', 'fa fa-link', $_SERVER['PHP_SELF'].$urlparam.'&action=linkproducts&token='.newToken());
@@ -1224,6 +1235,21 @@ if ($showsummary) {
 			print '</div>';
 		} elseif ($morehtmlright) {
 			print '<div class="right marginbottomonly">'.$morehtmlright.'</div>';
+		}
+
+		// Insert the JSON of update (module nslistmodexterne) in the URL of the tab : file
+		if ($permissiontoadd && $pluginurl > 0 && isset($urls[$pluginurl])) {
+			print '<form method="POST" enctype="multipart/form-data" action="'.$_SERVER['PHP_SELF'].$urlparam.'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="importurl">';
+			print '<input type="hidden" name="import_siteurl" value="'.((int) $pluginurl).'">';
+			print '<div class="div-table-responsive-no-min marginbottomonly"><table class="noborder centpercent">';
+			print '<tr class="oddeven"><td class="titlefield">'.img_picto('', 'fa-file-import', 'class="pictofixedwidth"').$langs->trans('PluginJsonInsert');
+			print $form->textwithpicto('', $langs->trans('PluginJsonInsertHelp')).'</td><td>';
+			print '<input type="file" name="pluginjsonfile" accept=".json,application/json"> ';
+			print '<input type="submit" class="button small" value="'.$langs->trans('PluginJsonImportFile').'">';
+			print '</td></tr></table></div>';
+			print '</form>';
 		}
 
 		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].$urlparam.'">';
@@ -1333,7 +1359,13 @@ if ($showsummary) {
 			print '<td class="tdoverflowmax100" title="'.dol_escape_htmltag((string) $tmpplugin->publisher).'">'.dol_escape_htmltag((string) $tmpplugin->publisher).'</td>';
 			print '<td class="center width25">'.$tmpplugin->getLinks('dolistore').'</td>';
 			print '<td class="center width25">'.$tmpplugin->getLinks('publisher').'</td>';
-			print '<td class="nowraponall">'.dol_escape_htmltag($tmpplugin->version).'</td>';
+			print '<td class="nowraponall">'.dol_escape_htmltag($tmpplugin->version);
+			// Version changed by the last JSON file: previous version with the direction of the change, date in the tooltip
+			if ((string) $tmpplugin->version_previous !== '') {
+				$wentup = (version_compare((string) $tmpplugin->version, (string) $tmpplugin->version_previous, '>'));
+				print ' <span class="badge '.($wentup ? 'badge-status4' : 'badge-status1').' classfortooltip" title="'.dol_escape_htmltag($langs->trans('PluginVersionChangedFrom', $tmpplugin->version_previous).($tmpplugin->version_date ? ' - '.dol_print_date($tmpplugin->version_date, 'dayhour', 'tzuser') : '')).'"><span class="fas '.($wentup ? 'fa-arrow-up' : 'fa-arrow-down').'"></span> '.dol_escape_htmltag($tmpplugin->version_previous).'</span>';
+			}
+			print '</td>';
 			print '<td class="nowraponall">'.$tmpplugin->getDolistoreVersionBadge().'</td>';
 			print $extracells;
 			print '<td class="right nowraponall">';

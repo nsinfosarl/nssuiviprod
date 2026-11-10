@@ -175,6 +175,8 @@ class SitePlugin extends CommonObject
 		"css" => array("type" => "text", "label" => "PluginCss", "enabled" => "1", 'position' => 129, 'notnull' => 0, "visible" => "-1", "validate" => "1",),
 		"js" => array("type" => "text", "label" => "PluginJs", "enabled" => "1", 'position' => 130, 'notnull' => 0, "visible" => "-1", "validate" => "1",),
 		"json_date" => array("type" => "datetime", "label" => "PluginJsonDate", "enabled" => "1", 'position' => 131, 'notnull' => 0, "visible" => "-1", "help" => "PluginJsonDateHelp", "validate" => "1",),
+		"version_previous" => array("type" => "varchar(64)", "label" => "PluginVersionPrevious", "enabled" => "1", 'position' => 36, 'notnull' => 0, "visible" => "5", "noteditable" => "1", "help" => "PluginVersionChangeHelp", "css" => "maxwidth150",),
+		"version_date" => array("type" => "datetime", "label" => "PluginVersionDate", "enabled" => "1", 'position' => 37, 'notnull' => 0, "visible" => "5", "noteditable" => "1", "help" => "PluginVersionChangeHelp",),
 		"rental" => array("type" => "integer", "label" => "PluginRental", "enabled" => "1", 'position' => 12, 'notnull' => 1, "visible" => "1", "default" => "0", "index" => "1", "arrayofkeyval" => array("0" => "PluginRentalNo", "1" => "PluginRentalYes"), "css" => "maxwidth200", "csslist" => "center nowraponall", "help" => "PluginRentalHelp", "validate" => "1",),
 		"fk_module" => array("type" => "integer:PluginModule:nssuiviprod/class/pluginmodule.class.php:0", "label" => "PluginModule", "picto" => "fa-cube_fas_#5A2D82", "enabled" => "1", 'position' => 17, 'notnull' => 0, "visible" => "5", "index" => "1", "css" => "maxwidth500 widthcentpercentminusxx", "csslist" => "tdoverflowmax150", "help" => "PluginModuleHelp",),
 		"fk_siteurl" => array("type" => "integer:SiteUrl:nssuiviprod/class/siteurl.class.php:0", "label" => "SiteUrl", "picto" => "fa-link", "enabled" => "1", 'position' => 16, 'notnull' => 1, "visible" => "1", "index" => "1", "css" => "maxwidth500 widthcentpercentminusxx", "csslist" => "tdoverflowmax200", "help" => "PluginUrlHelp", "validate" => "1",),
@@ -231,6 +233,10 @@ class SitePlugin extends CommonObject
 	public $dolistore_id;
 	public $dolistore_version;
 	public $dolistore_date;
+	/** @var string Version before the last change of version brought by an import of the JSON file */
+	public $version_previous;
+	/** @var int|string Date of the last change of version (date of generation of the JSON file, else date of the import) */
+	public $version_date;
 	public $dolistore_label;
 	public $dolistore_ref;
 	public $fk_module;
@@ -1369,7 +1375,7 @@ class SitePlugin extends CommonObject
 			'module' => array('module_name', 'module_class', 'module_number', 'module_description', 'publisher', 'publisher_url', 'family', 'module_enabled', 'activation_date', 'module_path', 'version_file', 'has_changelog'),
 			'compat' => array('need_dolibarr_version', 'php_min', 'depends', 'required_by', 'conflict_with', 'setup_page', 'lang_files'),
 			'features' => array('nb_rights', 'nb_menus', 'nb_tabs', 'nb_dictionaries', 'nb_widgets', 'nb_cron_jobs', 'has_triggers', 'has_models', 'hooks', 'css', 'js'),
-			'dolistore' => array('dolistore_id', 'dolistore_ref', 'dolistore_label', 'dolistore_version', 'dolistore_date', 'url_last_version', 'json_date'),
+			'dolistore' => array('dolistore_id', 'dolistore_ref', 'dolistore_label', 'dolistore_version', 'dolistore_date', 'url_last_version', 'json_date', 'version_previous', 'version_date'),
 		);
 	}
 
@@ -1672,7 +1678,7 @@ class SitePlugin extends CommonObject
 
 		$jsondate = (!empty($data['generated_at']) ? strtotime($data['generated_at']) : false);
 		$importkey = dol_print_date(dol_now(), '%Y%m%d%H%M%S', 'gmt');	// Same format as the creation date in getImportStates()
-		$result = array('created' => 0, 'updated' => 0, 'linked' => 0, 'added' => array(), 'missing' => array());
+		$result = array('created' => 0, 'updated' => 0, 'linked' => 0, 'added' => array(), 'missing' => array(), 'changed' => array());
 		$touched = array();
 
 		$this->db->begin();
@@ -1732,6 +1738,7 @@ class SitePlugin extends CommonObject
 				}
 			}
 
+			$oldversion = ($isnew ? '' : (string) $plugin->version);
 			$features = (isset($module['features']) && is_array($module['features'])) ? $module['features'] : array();
 			$plugin->version = dol_substr((string) (isset($module['version']) ? $module['version'] : ''), 0, 64);
 			$plugin->module_name = dol_substr($name, 0, 128);
@@ -1766,6 +1773,14 @@ class SitePlugin extends CommonObject
 			$plugin->hooks = self::jsonText($features, 'hooks');
 			$plugin->css = self::jsonText($features, 'css');
 			$plugin->js = self::jsonText($features, 'js');
+			// Change of version brought by the file: previous version and date of the change (date of the file, else of the import)
+			if ($isnew || $oldversion !== $plugin->version) {
+				$plugin->version_previous = ($isnew ? '' : dol_substr($oldversion, 0, 64));
+				$plugin->version_date = ($jsondate ? $jsondate : dol_now());
+				if (!$isnew) {
+					$result['changed'][] = ($label !== '' ? $label : $name).' ('.($oldversion !== '' ? $oldversion : '?').' → '.($plugin->version !== '' ? $plugin->version : '?').')';
+				}
+			}
 			$plugin->json_date = ($jsondate ? $jsondate : '');
 			$plugin->import_key = $importkey;
 			$plugin->moduledatafromimport = true;	// Identity of the module updated with the file

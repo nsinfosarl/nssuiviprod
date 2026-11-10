@@ -56,7 +56,7 @@ function sitePrepareHead($object)
 		$nbplugins = ($obj ? (int) $obj->nb : 0);
 		$db->free($resql);
 	}
-	$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_card.php", 1), ['id' => $object->id, 'tab' => 'plugins']).'#siteplugins';
+	$head[$h][0] = dolBuildUrl(dol_buildpath("/nssuiviprod/core/site/site_card.php", 1), ['id' => $object->id, 'tab' => 'plugins']);
 	$head[$h][1] = img_picto('', 'fa-puzzle-piece', 'class="pictofixedwidth" style="color: #5A2D82"').$langs->trans('SitePlugins').($nbplugins > 0 ? '<span class="badge marginleftonlyshort">'.$nbplugins.'</span>' : '');
 	$head[$h][2] = 'plugins';
 	$h++;

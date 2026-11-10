@@ -14,7 +14,7 @@ NssuiviprodDescription = Tracking of the sites of the customers (Dolibarr, WordP
 # Admin page
 #
 NssuiviprodSetup = Site tracking - Setup
-NssuiviprodErrorNsinfoRequired = The NSINFO framework version 23.9.2 or more is required: the module "NSINFO" (nsinfo) must be installed and enabled before enabling the module "Site tracking".
+NssuiviprodErrorNsinfoRequired = The NSINFO framework version 23.9.5 or more is required: the module "NSINFO" (nsinfo) must be installed and enabled before enabling the module "Site tracking".
 Settings = Settings
 
 
@@ -293,3 +293,10 @@ PluginSummaryOlder = Older than the version %s installed elsewhere
 NssuiviprodSummaryIgnored = Modules not listed in the summary
 NssuiviprodSummaryIgnoredHelp = The chosen modules are not listed in the summary of the plugins of a site (tab "Plugins" of the site card); a box shows them anyway.
 PluginSummaryShowIgnored = Show the %s ignored module(s)
+PluginJsonInsert=Insert the update JSON
+PluginJsonInsertHelp=Choose the JSON file of the module nslistmodexterne of this instance: the plugins of this URL are added or updated, whatever the address given in the JSON.
+PluginVersionPrevious=Previous version
+PluginVersionDate=Date of the version change
+PluginVersionChangeHelp=Last version change brought by an imported JSON file: version before the change and date of the change (date of the file, else of the import)
+PluginVersionChangedFrom=Previous version: %s
+PluginJsonChanged=%s plugin(s) with a changed version

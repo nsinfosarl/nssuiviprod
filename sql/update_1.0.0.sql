@@ -92,3 +92,6 @@ ALTER TABLE llx_nssuiviprod_siteplugin ADD INDEX idx_nssuiviprod_siteplugin_fk_m
 -- 23.0.3: product/service of the module (given to its plugins without product)
 ALTER TABLE llx_nssuiviprod_pluginmodule ADD COLUMN fk_product integer;
 ALTER TABLE llx_nssuiviprod_pluginmodule ADD INDEX idx_nssuiviprod_pluginmodule_fk_product (fk_product);
+-- 23.0.6: previous version and date of the last change of version brought by an import of the JSON file
+ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN version_previous varchar(64);
+ALTER TABLE llx_nssuiviprod_siteplugin ADD COLUMN version_date datetime;
